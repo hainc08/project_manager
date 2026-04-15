@@ -1,0 +1,57 @@
+name: Deploy to Staging
+
+on:
+  pull_request:
+    branches:
+      - stg
+    types:
+      - closed
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'stg'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STG_HOST }}
+          username: ${{ secrets.STG_USER }}
+          key: ${{ secrets.STG_SSH_KEY }}
+          port: ${{ secrets.STG_PORT }}
+          script: |
+            cd /var/www/project_manager
+            git pull origin stg
+
+            cd backend
+            npm install
+            pm2 restart labor-management-backend || pm2 start server.js --name labor-management-backend
+
+            cd ../frontend
+            npm install
+            npm run build
+
+            rm -rf /var/www/html/project_manager/*
+            cp -r dist/* /var/www/html/project_manager/
