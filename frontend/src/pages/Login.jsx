@@ -23,7 +23,8 @@ export default function Login() {
     try {
       await login(username, password);
     } catch (err) {
-      setError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      const apiError = err.response?.data?.error;
+      setError(typeof apiError === 'string' ? apiError : 'Đăng nhập thất bại. Không kết nối được API server.');
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,8 @@ export default function Login() {
     try {
       await login(account.username, account.password);
     } catch (err) {
-      setError(err.response?.data?.error || 'Đăng nhập thất bại');
+      const apiError = err.response?.data?.error;
+      setError(typeof apiError === 'string' ? apiError : 'Đăng nhập thất bại. Không kết nối được API server.');
     } finally {
       setLoading(false);
     }
