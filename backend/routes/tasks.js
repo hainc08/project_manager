@@ -5,50 +5,57 @@ const { generateId } = require('../utils/helpers');
 
 /**
  * GET /api/tasks
- * Admin/Accountant: List all tasks
+ * Admin/Accountant: List all tasks with project item info
  */
-router.get('/', authenticate, authorize('ADMIN', 'ACCOUNTANT'), (req, res) => {
+  router.get('/', authenticate, authorize('ADMIN', 'ACCOUNTANT'), (req, res) => {
   const db = req.app.get('db');
-  const { project_id, assigned_to, status } = req.query;
-  
-  let query = `
-    SELECT t.*, p.project_name, u.full_name as assignee_name
-    FROM tasks t
-    JOIN projects p ON t.project_id = p.id
-    JOIN users u ON t.assigned_to = u.id
-    WHERE 1=1
-  `;
-  const params = [];
+  try {
+    const { project_id, assigned_to, status } = req.query;
+    
+    let query = `
+      SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      JOIN users u ON t.assigned_to = u.id
+      LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      WHERE 1=1
+    `;
+    const params = [];
 
-  if (project_id) {
-    query += ' AND t.project_id = ?';
-    params.push(project_id);
-  }
-  if (assigned_to) {
-    query += ' AND t.assigned_to = ?';
-    params.push(assigned_to);
-  }
-  if (status) {
-    query += ' AND t.status = ?';
-    params.push(status);
-  }
+    if (project_id) {
+      query += ' AND t.project_id = ?';
+      params.push(project_id);
+    }
+    if (assigned_to) {
+      query += ' AND t.assigned_to = ?';
+      params.push(assigned_to);
+    }
+    if (status) {
+      query += ' AND t.status = ?';
+      params.push(status);
+    }
 
-  query += ' ORDER BY t.created_at DESC';
+    query += ' ORDER BY t.created_at DESC';
 
-  const tasks = db.prepare(query).all(...params);
-  res.json(tasks);
+    const tasks = db.prepare(query).all(...params);
+    res.json(tasks);
+  } catch (err) {
+    console.error('Error fetching tasks:', err);
+    res.status(500).json({ error: 'Lỗi hệ thống khi tải danh sách công việc: ' + err.message });
+  }
 });
 
 /**
  * GET /api/tasks/my
- * Staff: List own assigned tasks
+ * Staff: List own assigned tasks with project item info
  */
 router.get('/my', authenticate, (req, res) => {
   const db = req.app.get('db');
   const tasks = db.prepare(`
-    SELECT t.*, p.project_name
+    SELECT t.*, p.project_name, pi.name as project_item_name
     FROM tasks t
     JOIN projects p ON t.project_id = p.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
     WHERE t.assigned_to = ? AND t.status != 'DONE' AND t.status != 'CANCELLED'
     ORDER BY CASE WHEN t.status = 'DOING' THEN 0 ELSE 1 END, t.created_at DESC
   `).all(req.user.id);
@@ -57,31 +64,37 @@ router.get('/my', authenticate, (req, res) => {
 
 /**
  * POST /api/tasks
- * Admin: Create task assignment
+ * Admin: Create task assignment with project item
  */
 router.post('/', authenticate, authorize('ADMIN'), (req, res) => {
   const db = req.app.get('db');
-  const { project_id, assigned_to, title, description } = req.body;
+  const { project_id, project_item_id, assigned_to, title, description } = req.body;
 
   if (!project_id || !assigned_to || !title) {
     return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin: Dự án, Người thực hiện, Tiêu đề' });
   }
 
-  const id = generateId();
-  db.prepare(`
-    INSERT INTO tasks (id, project_id, assigned_to, title, description, status)
-    VALUES (?, ?, ?, ?, ?, 'TODO')
-  `).run(id, project_id, assigned_to, title, description || '');
+  try {
+    const id = generateId();
+    db.prepare(`
+      INSERT INTO tasks (id, project_id, project_item_id, assigned_to, title, description, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'TODO')
+    `).run(id, project_id, project_item_id || null, assigned_to, title, description || '');
 
-  const task = db.prepare(`
-    SELECT t.*, p.project_name, u.full_name as assignee_name
-    FROM tasks t
-    JOIN projects p ON t.project_id = p.id
-    JOIN users u ON t.assigned_to = u.id
-    WHERE t.id = ?
-  `).get(id);
-  
-  res.status(201).json(task);
+    const task = db.prepare(`
+      SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      JOIN users u ON t.assigned_to = u.id
+      LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      WHERE t.id = ?
+    `).get(id);
+    
+    res.status(201).json(task);
+  } catch (err) {
+    console.error('Error creating task:', err);
+    res.status(500).json({ error: 'Lỗi hệ thống khi tạo công việc: ' + err.message });
+  }
 });
 
 /**
@@ -91,7 +104,7 @@ router.post('/', authenticate, authorize('ADMIN'), (req, res) => {
 router.put('/:id', authenticate, authorize('ADMIN'), (req, res) => {
   const db = req.app.get('db');
   const { id } = req.params;
-  const { project_id, assigned_to, title, description, status } = req.body;
+  const { project_id, project_item_id, assigned_to, title, description, status } = req.body;
 
   const task = db.prepare('SELECT id FROM tasks WHERE id = ?').get(id);
   if (!task) return res.status(404).json({ error: 'Không tìm thấy công việc' });
@@ -99,19 +112,21 @@ router.put('/:id', authenticate, authorize('ADMIN'), (req, res) => {
   db.prepare(`
     UPDATE tasks 
     SET project_id = COALESCE(?, project_id), 
+        project_item_id = ?, 
         assigned_to = COALESCE(?, assigned_to), 
         title = COALESCE(?, title), 
         description = COALESCE(?, description),
         status = COALESCE(?, status),
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(project_id, assigned_to, title, description, status, id);
+  `).run(project_id, project_item_id || null, assigned_to, title, description, status, id);
 
   const updated = db.prepare(`
-    SELECT t.*, p.project_name, u.full_name as assignee_name
+    SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name
     FROM tasks t
     JOIN projects p ON t.project_id = p.id
     JOIN users u ON t.assigned_to = u.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
     WHERE t.id = ?
   `).get(id);
   

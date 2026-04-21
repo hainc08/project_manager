@@ -104,6 +104,7 @@ app.use('/api/projects', require('./routes/projects'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/worklogs', require('./routes/worklogs'));
 app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/project-items', require('./routes/project_items'));
 
 // Health check
 app.get('/api/health', (req, res) => {

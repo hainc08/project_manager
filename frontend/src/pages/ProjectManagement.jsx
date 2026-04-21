@@ -4,13 +4,26 @@ import { getStatusLabel, getStatusBadgeClass, formatDateTime } from '../utils/fo
 
 export default function ProjectManagement() {
   const [projects, setProjects] = useState([]);
+  const [availableItems, setAvailableItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
-  const [form, setForm] = useState({ project_name: '', status: 'ACTIVE' });
+  const [form, setForm] = useState({ project_name: '', status: 'ACTIVE', item_ids: [] });
   const [error, setError] = useState('');
 
-  useEffect(() => { fetchProjects(); }, []);
+  useEffect(() => { 
+    fetchProjects(); 
+    fetchAvailableItems();
+  }, []);
+
+  const fetchAvailableItems = async () => {
+    try {
+      const res = await api.get('/project-items');
+      setAvailableItems(res.data);
+    } catch (err) {
+      console.error('Failed to fetch project items', err);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -25,16 +38,29 @@ export default function ProjectManagement() {
 
   const openCreateModal = () => {
     setEditingProject(null);
-    setForm({ project_name: '', status: 'ACTIVE' });
+    setForm({ project_name: '', status: 'ACTIVE', item_ids: [] });
     setError('');
     setShowModal(true);
   };
 
   const openEditModal = (project) => {
     setEditingProject(project);
-    setForm({ project_name: project.project_name, status: project.status });
+    setForm({ 
+      project_name: project.project_name, 
+      status: project.status,
+      item_ids: project.items ? project.items.map(i => i.id) : []
+    });
     setError('');
     setShowModal(true);
+  };
+
+  const handleToggleItem = (itemId) => {
+    setForm(prev => {
+      const item_ids = prev.item_ids.includes(itemId)
+        ? prev.item_ids.filter(id => id !== itemId)
+        : [...prev.item_ids, itemId];
+      return { ...prev, item_ids };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -102,7 +128,18 @@ export default function ProjectManagement() {
                     {getStatusLabel(project.status)}
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                
+                {project.items && project.items.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
+                    {project.items.map(item => (
+                      <span key={item.id} className="badge badge-purple" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
+                        {item.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: 'auto' }}>
                   <button className="btn btn-outline btn-sm" onClick={() => openEditModal(project)}>✏️ Sửa</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(project)} style={{ color: 'var(--color-danger)' }}>🗑️ Xóa</button>
                 </div>
@@ -134,6 +171,26 @@ export default function ProjectManagement() {
                     <option value="ON_HOLD">Tạm dừng</option>
                     <option value="COMPLETED">Hoàn thành</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Hạng mục triển khai</label>
+                  {availableItems.length === 0 ? (
+                    <p className="text-muted" style={{ fontSize: '0.85rem' }}>Chưa có hạng mục nào. Vui lòng tạo hạng mục trước.</p>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '150px', overflowY: 'auto', padding: '8px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+                      {availableItems.map(item => (
+                        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={form.item_ids.includes(item.id)}
+                            onChange={() => handleToggleItem(item.id)}
+                          />
+                          {item.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">

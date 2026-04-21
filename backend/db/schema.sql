@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS worklogs (
 CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
+    project_item_id TEXT, -- Link to specific project category/item
     assigned_to TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
@@ -48,7 +49,25 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (project_item_id) REFERENCES project_items(id),
     FOREIGN KEY (assigned_to) REFERENCES users(id)
+);
+
+-- Project Items Table (Global Categories)
+CREATE TABLE IF NOT EXISTS project_items (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Project Item Mapping (Linking projects to multiple items)
+CREATE TABLE IF NOT EXISTS project_item_mapping (
+    project_id TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    PRIMARY KEY (project_id, item_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES project_items(id) ON DELETE CASCADE
 );
 
 -- Attendance Table (Daily presence)

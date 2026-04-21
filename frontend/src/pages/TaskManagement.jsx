@@ -18,6 +18,7 @@ export default function TaskManagement() {
 
   const [form, setForm] = useState({
     project_id: '',
+    project_item_id: '',
     assigned_to: '',
     title: '',
     description: '',
@@ -38,6 +39,7 @@ export default function TaskManagement() {
         api.get('/projects'),
         api.get('/users')
       ]);
+      // Store all projects including their items
       setProjects(projRes.data.filter(p => p.status === 'ACTIVE'));
       setUsers(userRes.data.filter(u => u.role === 'STAFF'));
       fetchTasks();
@@ -67,6 +69,7 @@ export default function TaskManagement() {
     setEditingTask(null);
     setForm({
       project_id: '',
+      project_item_id: '',
       assigned_to: '',
       title: '',
       description: '',
@@ -80,6 +83,7 @@ export default function TaskManagement() {
     setEditingTask(task);
     setForm({
       project_id: task.project_id,
+      project_item_id: task.project_item_id || '',
       assigned_to: task.assigned_to,
       title: task.title,
       description: task.description,
@@ -180,6 +184,7 @@ export default function TaskManagement() {
                 <thead>
                   <tr>
                     <th>Công việc</th>
+                    <th>Hạng mục</th>
                     <th>Dự án</th>
                     <th>Nhân viên</th>
                     <th>Trạng thái</th>
@@ -193,6 +198,11 @@ export default function TaskManagement() {
                       <td data-label="Công việc">
                         <div style={{ fontWeight: 600 }}>{task.title}</div>
                         {task.description && <div className="text-muted" style={{ fontSize: '0.75rem' }}>{task.description}</div>}
+                      </td>
+                      <td data-label="Hạng mục">
+                        {task.project_item_name ? (
+                          <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>{task.project_item_name}</span>
+                        ) : '---'}
                       </td>
                       <td data-label="Dự án">{task.project_name}</td>
                       <td data-label="Nhân viên">{task.assignee_name}</td>
@@ -252,18 +262,42 @@ export default function TaskManagement() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Dự án</label>
-                    <select className="form-select" required value={form.project_id} onChange={e => setForm({...form, project_id: e.target.value})}>
+                    <select className="form-select" required value={form.project_id} onChange={e => setForm({...form, project_id: e.target.value, project_item_id: ''})}>
                       <option value="">-- Chọn dự án --</option>
                       {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Nhân viên thực hiện</label>
-                    <select className="form-select" required value={form.assigned_to} onChange={e => setForm({...form, assigned_to: e.target.value})}>
-                      <option value="">-- Chọn nhân viên --</option>
-                      {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                    <label className="form-label">Hạng mục</label>
+                    <select 
+                      className="form-select" 
+                      value={form.project_item_id} 
+                      onChange={e => setForm({...form, project_item_id: e.target.value})}
+                      disabled={!form.project_id}
+                    >
+                      <option value="">-- Thuộc hạng mục (tùy chọn) --</option>
+                      {form.project_id && (() => {
+                        const project = projects.find(p => String(p.id) === String(form.project_id));
+                        if (!project || !project.items || project.items.length === 0) return null;
+                        return project.items.map(item => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
+                        ));
+                      })()}
                     </select>
+                    {form.project_id && projects.find(p => String(p.id) === String(form.project_id))?.items?.length === 0 && (
+                      <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '4px' }}>
+                        ⚠️ Dự án này chưa được gán hạng mục nào.
+                      </div>
+                    )}
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Nhân viên thực hiện</label>
+                  <select className="form-select" required value={form.assigned_to} onChange={e => setForm({...form, assigned_to: e.target.value})}>
+                    <option value="">-- Chọn nhân viên --</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                  </select>
                 </div>
 
                 <div className="form-group">

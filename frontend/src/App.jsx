@@ -10,6 +10,7 @@ import FinancialReport from './pages/FinancialReport';
 import StaffWorklog from './pages/StaffWorklog';
 import AttendanceReport from './pages/AttendanceReport';
 import TaskManagement from './pages/TaskManagement';
+import ProjectItemManagement from './pages/ProjectItemManagement';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -89,6 +90,11 @@ function AppRoutes() {
         <Route path="projects" element={
           <ProtectedRoute roles={['ADMIN']}>
             <ProjectManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="project-items" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <ProjectItemManagement />
           </ProtectedRoute>
         } />
         <Route path="reports" element={

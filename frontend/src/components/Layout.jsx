@@ -124,6 +124,7 @@ function getNavItems(role) {
     items.push({
       title: 'Quản lý',
       links: [
+        { to: '/project-items', label: 'Quản lý Hạng mục', icon: '📚' },
         { to: '/tasks', label: 'Quản lý Task', icon: '📝' },
         ...(role === 'ADMIN' ? [
           { to: '/users', label: 'Nhân viên', icon: '👥' },

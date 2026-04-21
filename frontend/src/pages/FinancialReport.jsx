@@ -5,6 +5,7 @@ import { formatCurrency, formatDateTime, formatDuration, formatNumber } from '..
 export default function FinancialReport() {
   const [worklogs, setWorklogs] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [itemSummary, setItemSummary] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -39,6 +40,7 @@ export default function FinancialReport() {
       const res = await api.get('/worklogs/report', { params });
       setWorklogs(res.data.worklogs);
       setSummary(res.data.summary);
+      setItemSummary(res.data.item_summary || []);
     } catch (err) {
       console.error('Failed to fetch report', err);
     } finally {
@@ -117,7 +119,7 @@ export default function FinancialReport() {
           </form>
         </div>
 
-        {/* Summary */}
+        {/* Summary Indicators */}
         {summary && (
           <div className="stats-grid">
             <div className="stat-card">
@@ -139,6 +141,39 @@ export default function FinancialReport() {
               <div className="stat-card-icon hours">⏱</div>
               <div className="stat-card-label">Tổng giờ / Số bản ghi</div>
               <div className="stat-card-value">{formatNumber(summary.total_hours)}h <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>({summary.total_records})</span></div>
+            </div>
+          </div>
+        )}
+
+        {/* Item Breakdown */}
+        {!loading && itemSummary.length > 0 && (
+          <div className="card mb-lg">
+            <div className="card-header">
+              <div className="card-title">📊 Thống kê theo Hạng mục</div>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Hạng mục</th>
+                    <th className="text-right">Tổng giờ</th>
+                    <th className="text-right">Chi phí</th>
+                    <th className="text-right">Doanh thu</th>
+                    <th className="text-right">Lợi nhuận</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itemSummary.map((item, idx) => (
+                    <tr key={idx}>
+                      <td><strong>{item.item_name}</strong></td>
+                      <td className="text-right font-mono">{formatDuration(item.total_hours)}</td>
+                      <td className="text-right font-mono text-danger">{formatCurrency(item.total_cost)}</td>
+                      <td className="text-right font-mono text-success">{formatCurrency(item.total_revenue)}</td>
+                      <td className="text-right font-mono text-info" style={{ fontWeight: 600 }}>{formatCurrency(item.profit)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

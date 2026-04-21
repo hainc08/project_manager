@@ -178,7 +178,10 @@ export default function StaffWorklog() {
                 <div style={{ textAlign: 'left' }}>
                   <div className="badge badge-active" style={{ marginBottom: '4px' }}>Đang thực hiện</div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{activeTask.task_title || activeTask.task_content || 'Công việc không tên'}</h3>
-                  <p className="text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>Dự án: {activeTask.project_name}</p>
+                  <p className="text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+                    Dự án: {activeTask.project_name} 
+                    {activeTask.project_item_name && ` | Hạng mục: ${activeTask.project_item_name}`}
+                  </p>
                 </div>
               </div>
               <div className="worklog-monitor-timer-section">
@@ -216,6 +219,7 @@ export default function StaffWorklog() {
                 <thead>
                   <tr>
                     <th>Công việc</th>
+                    <th>Hạng mục</th>
                     <th>Ngày giao</th>
                     <th>Trạng thái</th>
                     <th className="text-right">Hành động</th>
@@ -224,10 +228,15 @@ export default function StaffWorklog() {
                 <tbody>
                   {assignedTasks.map(task => (
                     <tr key={task.id} style={{ opacity: task.status === 'FINISHED_BY_STAFF' ? 0.7 : 1 }}>
-                      <td data-label="Dự án"><strong>{task.project_name}</strong></td>
                       <td data-label="Công việc">
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{task.project_name}</div>
                         <div style={{ fontWeight: 600 }}>{task.title}</div>
                         {task.description && <div className="text-muted" style={{ fontSize: '0.75rem' }}>{task.description}</div>}
+                      </td>
+                      <td data-label="Hạng mục">
+                        {task.project_item_name ? (
+                          <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>{task.project_item_name}</span>
+                        ) : '---'}
                       </td>
                       <td data-label="Ngày giao">{formatDateTime(task.created_at)}</td>
                       <td data-label="Trạng thái">

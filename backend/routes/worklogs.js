@@ -80,11 +80,13 @@ router.post('/start', authenticate, (req, res) => {
   `).run(id, req.user.id, task.project_id, task_id, start_time);
 
   const worklog = db.prepare(`
-    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, t.title as task_title
+    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
+           t.title as task_title, pi.name as project_item_name
     FROM worklogs w
     JOIN users u ON w.user_id = u.id
     JOIN projects p ON w.project_id = p.id
     LEFT JOIN tasks t ON w.task_id = t.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
     WHERE w.id = ?
   `).get(id);
 
@@ -122,11 +124,12 @@ router.post('/stop', authenticate, (req, res) => {
   `).run(end_time, duration_hours, actual_cost, actual_revenue, activeTask.id);
 
   const worklog = db.prepare(`
-    SELECT w.*, u.full_name, p.project_name, t.title as task_title
+    SELECT w.*, u.full_name, p.project_name, t.title as task_title, pi.name as project_item_name
     FROM worklogs w
     JOIN users u ON w.user_id = u.id
     JOIN projects p ON w.project_id = p.id
     LEFT JOIN tasks t ON w.task_id = t.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
     WHERE w.id = ?
   `).get(activeTask.id);
 
@@ -143,10 +146,13 @@ router.post('/stop', authenticate, (req, res) => {
 router.get('/active', authenticate, (req, res) => {
   const db = req.app.get('db');
   const activeTasks = db.prepare(`
-    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name
+    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
+           t.title as task_title, pi.name as project_item_name
     FROM worklogs w
     JOIN users u ON w.user_id = u.id
     JOIN projects p ON w.project_id = p.id
+    LEFT JOIN tasks t ON w.task_id = t.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
     WHERE w.status = 'IN_PROGRESS'
     ORDER BY w.start_time DESC
   `).all();
@@ -160,10 +166,11 @@ router.get('/active', authenticate, (req, res) => {
 router.get('/my', authenticate, (req, res) => {
   const db = req.app.get('db');
   const worklogs = db.prepare(`
-    SELECT w.*, p.project_name, t.title as task_title
+    SELECT w.*, p.project_name, t.title as task_title, pi.name as project_item_name
     FROM worklogs w
     JOIN projects p ON w.project_id = p.id
     LEFT JOIN tasks t ON w.task_id = t.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
     WHERE w.user_id = ?
     ORDER BY w.start_time DESC
     LIMIT 50
@@ -180,10 +187,13 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), (req, res)
   const { start_date, end_date, project_id, user_id } = req.query;
 
   let query = `
-    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name
+    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
+           t.title as task_title, pi.name as project_item_name
     FROM worklogs w
     JOIN users u ON w.user_id = u.id
     JOIN projects p ON w.project_id = p.id
+    LEFT JOIN tasks t ON w.task_id = t.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
     WHERE w.status = 'DONE'
   `;
   const params = [];
@@ -218,7 +228,48 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), (req, res)
   };
   summary.profit = roundMoney(summary.total_revenue - summary.total_cost);
 
-  res.json({ worklogs, summary });
+  // NEW: Calculate summary by project item
+  let itemSummaryQuery = `
+    SELECT 
+      COALESCE(pi.name, 'Chưa phân loại') as item_name,
+      SUM(w.duration_hours) as total_hours,
+      SUM(w.actual_cost) as total_cost,
+      SUM(w.actual_revenue) as total_revenue
+    FROM worklogs w
+    LEFT JOIN tasks t ON w.task_id = t.id
+    LEFT JOIN project_items pi ON t.project_item_id = pi.id
+    WHERE w.status = 'DONE'
+  `;
+  const itemParams = [];
+
+  if (start_date) {
+    itemSummaryQuery += ' AND w.start_time >= ?';
+    itemParams.push(start_date);
+  }
+  if (end_date) {
+    itemSummaryQuery += ' AND w.start_time <= ?';
+    itemParams.push(end_date + ' 23:59:59');
+  }
+  if (project_id) {
+    itemSummaryQuery += ' AND w.project_id = ?';
+    itemParams.push(project_id);
+  }
+  if (user_id) {
+    itemSummaryQuery += ' AND w.user_id = ?';
+    itemParams.push(user_id);
+  }
+
+  itemSummaryQuery += ' GROUP BY COALESCE(pi.name, "Chưa phân loại") ORDER BY total_revenue DESC';
+  
+  const item_summary = db.prepare(itemSummaryQuery).all(...itemParams).map(item => ({
+    ...item,
+    profit: roundMoney(item.total_revenue - item.total_cost),
+    total_hours: roundMoney(item.total_hours),
+    total_cost: roundMoney(item.total_cost),
+    total_revenue: roundMoney(item.total_revenue)
+  }));
+
+  res.json({ worklogs, summary, item_summary });
 });
 
 /**
