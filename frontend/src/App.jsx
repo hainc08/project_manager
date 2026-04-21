@@ -8,6 +8,8 @@ import UserManagement from './pages/UserManagement';
 import ProjectManagement from './pages/ProjectManagement';
 import FinancialReport from './pages/FinancialReport';
 import StaffWorklog from './pages/StaffWorklog';
+import AttendanceReport from './pages/AttendanceReport';
+import TaskManagement from './pages/TaskManagement';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -79,6 +81,11 @@ function AppRoutes() {
             <UserManagement />
           </ProtectedRoute>
         } />
+        <Route path="tasks" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <TaskManagement />
+          </ProtectedRoute>
+        } />
         <Route path="projects" element={
           <ProtectedRoute roles={['ADMIN']}>
             <ProjectManagement />
@@ -87,6 +94,11 @@ function AppRoutes() {
         <Route path="reports" element={
           <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
             <FinancialReport />
+          </ProtectedRoute>
+        } />
+        <Route path="attendance-report" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <AttendanceReport />
           </ProtectedRoute>
         } />
         <Route path="worklog" element={

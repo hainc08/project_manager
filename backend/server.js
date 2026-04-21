@@ -101,7 +101,9 @@ app.set('db', db);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/projects', require('./routes/projects'));
+app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/worklogs', require('./routes/worklogs'));
+app.use('/api/attendance', require('./routes/attendance'));
 
 // Health check
 app.get('/api/health', (req, res) => {

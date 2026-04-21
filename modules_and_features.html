@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách Module và Chức năng - Project Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #ec4899;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --glass: rgba(255, 255, 255, 0.05);
+            --success: #10b981;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 40%);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #818cf8, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .module-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .module-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary-light);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .module-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .module-card:hover::before {
+            opacity: 1;
+        }
+
+        .module-icon {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            display: inline-block;
+            background: var(--glass);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+        }
+
+        .module-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-light);
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-item {
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .feature-item::before {
+            content: '✦';
+            position: absolute;
+            left: 0;
+            color: var(--secondary);
+            font-size: 0.8rem;
+        }
+
+        footer {
+            margin-top: 80px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            padding-top: 30px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Stagger animations for cards */
+        .module-card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .module-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .module-card:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .module-card:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .module-card:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        .module-card:nth-child(6) {
+            animation-delay: 0.6s;
+        }
+
+        .module-card:nth-child(7) {
+            animation-delay: 0.7s;
+        }
+
+        .module-card:nth-child(8) {
+            animation-delay: 0.8s;
+        }
+
+        .module-card:nth-child(9) {
+            animation-delay: 0.9s;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .module-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .flow-section {
+            margin-top: 80px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .flow-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--text-main);
+        }
+
+        .flow-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .flow-label {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .label-staff { background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .label-accountant { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+        .label-admin { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .mermaid {
+            background: transparent !important;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Hệ thống Quản lý Dự án & Nhân công</h1>
+            <p class="subtitle">Danh sách chi tiết các module và tính năng đã được triển khai</p>
+        </header>
+
+        <div class="module-grid">
+            <!-- Module 1 -->
+            <div class="module-card">
+                <div class="module-icon">📊</div>
+                <h2 class="module-title">Dashboard (Tổng quan)</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Biểu diễn dữ liệu qua biểu đồ trực quan (Recharts)</li>
+                    <li class="feature-item">Thống kê nhanh Tổng chi phí, Doanh thu và Lợi nhuận</li>
+                    <li class="feature-item">Theo dõi trạng thái các dự án đang hoạt động</li>
+                </ul>
+            </div>
+
+            <!-- Module 2 -->
+            <div class="module-card">
+                <div class="module-icon">👥</div>
+                <h2 class="module-title">Quản lý Người dùng</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Phân quyền người dùng (Admin, Accountant, Staff)</li>
+                    <li class="feature-item">Thiết lập đơn giá chuẩn (Standard Rate) và đơn giá thu (Billing Rate)</li>
+                    <li class="feature-item">Quản lý loại hợp đồng (Full-time, Part-time, Freelancer)</li>
+                </ul>
+            </div>
+
+            <!-- Module 3 -->
+            <div class="module-card">
+                <div class="module-icon">🏗️</div>
+                <h2 class="module-title">Quản lý Dự án</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Tạo mới, chỉnh sửa và quản lý danh sách dự án</li>
+                    <li class="feature-item">Cập nhật trạng thái dự án (In Progress, Completed, On Hold)</li>
+                    <li class="feature-item">Theo dõi tiến độ và gán nhân sự cho dự án</li>
+                </ul>
+            </div>
+
+            <!-- Module 4 -->
+            <div class="module-card">
+                <div class="module-icon">⏱️</div>
+                <h2 class="module-title">Nhật ký Công việc (Worklogs)</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Ghi nhận thời gian dựa trên các Task được giao cụ thể</li>
+                    <li class="feature-item">Tự động tính toán chi phí và doanh thu dựa trên thời gian thực</li>
+                    <li class="feature-item">Liên kết chặt chẽ lịch sử làm việc với mã định danh Task</li>
+                </ul>
+            </div>
+
+            <!-- Module 5 -->
+            <div class="module-card">
+                <div class="module-icon">📅</div>
+                <h2 class="module-title">Hệ thống Chấm công</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Chấm công vào ca (Check-in) và tan ca (Check-out) hàng ngày</li>
+                    <li class="feature-item">Ràng buộc: Bắt buộc Check-in trước khi bắt đầu ghi nhật ký task</li>
+                    <li class="feature-item">Ghi nhận thời gian có mặt thực tế tại văn phòng/công trường</li>
+                </ul>
+            </div>
+
+            <!-- Module 6 -->
+            <div class="module-card">
+                <div class="module-icon">📡</div>
+                <h2 class="module-title">Giám sát Trực tuyến (Live)</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Theo dõi theo thời gian thực ai đang làm việc trên dự án nào</li>
+                    <li class="feature-item">Hiển thị nội dung công việc và thời gian đã trôi qua</li>
+                    <li class="feature-item">Hỗ trợ quản lý phát hiện các bất thường trong làm việc</li>
+                </ul>
+            </div>
+
+            <!-- Module 7 -->
+            <div class="module-card">
+                <div class="module-icon">💰</div>
+                <h2 class="module-title">Báo cáo Tài chính</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Lọc dữ liệu theo khoảng thời gian và theo từng dự án</li>
+                    <li class="feature-item">Tính toán tổng hợp Cost, Revenue và Profit</li>
+                    <li class="feature-item">Giao diện tối ưu để xuất dữ liệu báo cáo</li>
+                </ul>
+            </div>
+
+            <!-- Module 8 -->
+            <div class="module-card">
+                <div class="module-icon">📑</div>
+                <h2 class="module-title">Báo cáo Chấm công</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Thống kê giờ làm việc hàng ngày của từng nhân viên</li>
+                    <li class="feature-item">Theo dõi lịch sử vào/ra ca chi tiết</li>
+                    <li class="feature-item">Tổng hợp số lượt chấm công và tổng giờ tích lũy</li>
+                </ul>
+            </div>
+
+            <!-- Module 9 -->
+            <div class="module-card">
+                <div class="module-icon">🔐</div>
+                <h2 class="module-title">Hệ thống Xác thực</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Đăng nhập bảo mật với JWT (JSON Web Token)</li>
+                    <li class="feature-item">Tự động điều hướng dựa trên vai trò (Role-based Routing)</li>
+                    <li class="feature-item">Quản lý phiên làm việc và bảo mật thông tin</li>
+                </ul>
+            </div>
+
+            <!-- Module 10 (NEW) -->
+            <div class="module-card">
+                <div class="module-icon">📝</div>
+                <h2 class="module-title">Quản lý Task (Giao việc)</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Admin điều phối, giao nhiệm vụ trực tiếp cho từng nhân sự</li>
+                    <li class="feature-item">Quản lý trạng thái Task (Todo, Doing, Finished, Done)</li>
+                    <li class="feature-item">Cơ chế Nhân viên báo cáo xong - Quản trị viên duyệt hoàn thành</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="flow-section">
+            <h2 class="flow-title">Quy trình Hoạt động</h2>
+
+            <!-- Staff Flow -->
+            <div class="flow-container">
+                <span class="flow-label label-staff">Nhân viên (Staff)</span>
+                <div class="mermaid">flowchart LR
+    A["Đăng nhập"] --> B["Check-in vào ca"]
+    B --> C["Xem danh sách Task được giao"]
+    C --> D["Bắt đầu làm (DOING)"]
+    D --> E["Thực hiện & Ghi log"]
+    E --> F["Báo cáo hoàn thành"]
+    F --> G["Check-out tan ca"]
+    
+    style A fill:#312e81,stroke:#6366f1
+    style B fill:#312e81,stroke:#6366f1
+    style C fill:#312e81,stroke:#6366f1
+    style D fill:#064e3b,stroke:#10b981
+    style F fill:#b45309,stroke:#f59e0b
+    style G fill:#312e81,stroke:#6366f1</div>
+            </div>
+
+            <!-- Accountant Flow -->
+            <div class="flow-container">
+                <span class="flow-label label-accountant">Kế toán (Accountant)</span>
+                <div class="mermaid">flowchart LR
+    L["Đăng nhập"] --> M["Theo dõi Live Monitor"]
+    M --> N["Xem Báo cáo Tài chính"]
+    N --> O["Lọc theo Ngày/Dự án"]
+    O --> P["Phân tích Doanh thu/Lợi nhuận"]
+    P --> Q["Xuất báo cáo"]
+
+    style L fill:#500724,stroke:#ec4899
+    style M fill:#500724,stroke:#ec4899
+    style N fill:#500724,stroke:#ec4899
+    style P fill:#064e3b,stroke:#10b981</div>
+            </div>
+
+            <!-- Admin Flow -->
+            <div class="flow-container">
+                <span class="flow-label label-admin">Quản trị viên (Admin)</span>
+                <div class="mermaid">flowchart LR
+    X["Đăng nhập"] --> Y["Quản lý User & Dự án"]
+    Y --> Z["Giao Task cho Nhân viên"]
+    Z --> W["Giám sát Live Monitor"]
+    W --> V["Duyệt hoàn thành Task (DONE)"]
+    V --> T["Xem Báo cáo Tổng hợp"]
+
+    style X fill:#064e3b,stroke:#10b981
+    style Z fill:#4338ca,stroke:#6366f1
+    style V fill:#064e3b,stroke:#10b981
+    style T fill:#500724,stroke:#ec4899</div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2026@by Kosumi Copany</p>
+        </footer>
+    </div>
+</body>
+
+</html>

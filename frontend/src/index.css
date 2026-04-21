@@ -695,6 +695,12 @@ a:hover {
   color: var(--accent-secondary);
 }
 
+.badge-muted {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
 .badge-active {
   background: var(--color-success-bg);
   color: var(--color-success);
@@ -1188,39 +1194,220 @@ a:hover {
 /* ============================================
    RESPONSIVE
    ============================================ */
-@media (max-width: 768px) {
+.mobile-header {
+  display: none;
+  height: var(--header-height);
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+  padding: 0 var(--spacing-lg);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1002;
+  backdrop-filter: blur(10px);
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-right: 40px; /* Balance for hamburger btn */
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1020;
+  backdrop-filter: blur(4px);
+  animation: fadeIn var(--transition-fast);
+}
+
+.sidebar-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  padding: 10px;
+  cursor: pointer;
+}
+
+/* Updated Staff Monitor Header */
+.worklog-monitor-card {
+  padding: var(--spacing-lg);
+}
+
+.worklog-monitor-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.worklog-monitor-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex: 1;
+}
+
+.worklog-monitor-timer-section {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+@media (max-width: 992px) {
   :root {
     --sidebar-width: 0px;
   }
 
+  .mobile-header {
+    display: flex;
+  }
+
   .sidebar {
     transform: translateX(-100%);
+    z-index: 1030;
+    width: 280px;
+    box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+    transition: transform var(--transition-slow);
   }
 
   .sidebar.open {
     transform: translateX(0);
-    width: 260px;
+  }
+
+  .sidebar-close-btn {
+    display: block;
+    margin-left: auto;
   }
 
   .main-content {
     margin-left: 0;
+    padding-top: calc(var(--header-height) + var(--spacing-lg));
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .charts-grid {
-    grid-template-columns: 1fr;
+  .page-header {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
   }
 
   .page-body {
     padding: var(--spacing-md);
   }
 
-  .toolbar {
+  /* Responsive Tables - Table-to-Card Transformation */
+  .data-table, 
+  .data-table thead, 
+  .data-table tbody, 
+  .data-table th, 
+  .data-table td, 
+  .data-table tr {
+    display: block;
+  }
+
+  .data-table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  .data-table tr {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.02);
+    padding: var(--spacing-sm);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .data-table td {
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    position: relative;
+    padding: var(--spacing-md) !important;
+    padding-left: 45% !important;
+    text-align: left !important;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+
+  .data-table td:last-child {
+    border-bottom: none !important;
+    justify-content: flex-start;
+  }
+
+  .data-table td:before {
+    position: absolute;
+    left: var(--spacing-md);
+    width: 40%;
+    padding-right: 10px;
+    white-space: nowrap;
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Staff Monitor Card Responsive */
+  .worklog-monitor-flex {
     flex-direction: column;
     align-items: stretch;
+    text-align: center;
+    gap: var(--spacing-lg);
+  }
+
+  .worklog-monitor-info {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .worklog-monitor-timer-section {
+    text-align: center;
+    width: 100%;
+  }
+
+  .worklog-timer {
+    font-size: 2.2rem !important; /* Force smaller size on mobile */
+    margin: var(--spacing-sm) 0;
+  }
+
+  /* Data Table / Cards View */
+  .data-table td {
+    padding: var(--spacing-sm) !important;
+    padding-left: 42% !important;
+    font-size: var(--font-size-sm);
+  }
+
+  .btn-lg {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+
+  .attendance-card-body {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-lg);
   }
 }
 

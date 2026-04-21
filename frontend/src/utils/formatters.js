@@ -117,7 +117,11 @@ export function getStatusLabel(status) {
     COMPLETED: 'Hoàn thành',
     ON_HOLD: 'Tạm dừng',
     IN_PROGRESS: 'Đang thực hiện',
-    DONE: 'Hoàn thành'
+    TODO: 'Chưa bắt đầu',
+    DOING: 'Đang làm',
+    FINISHED_BY_STAFF: 'Chờ duyệt',
+    DONE: 'Hoàn thành',
+    CANCELLED: 'Đã hủy'
   };
   return labels[status] || status;
 }
@@ -128,7 +132,11 @@ export function getStatusBadgeClass(status) {
     COMPLETED: 'badge-info',
     ON_HOLD: 'badge-warning',
     IN_PROGRESS: 'badge-active',
-    DONE: 'badge-success'
+    TODO: 'badge-muted',
+    DOING: 'badge-active',
+    FINISHED_BY_STAFF: 'badge-warning',
+    DONE: 'badge-success',
+    CANCELLED: 'badge-danger'
   };
   return classes[status] || 'badge-info';
 }

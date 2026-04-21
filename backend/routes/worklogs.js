@@ -12,10 +12,10 @@ const XLSX = require('xlsx');
 router.post('/start', authenticate, (req, res) => {
   const db = req.app.get('db');
   const io = req.app.get('io');
-  const { project_id, task_content } = req.body;
+  const { task_id } = req.body;
 
-  if (!project_id) {
-    return res.status(400).json({ error: 'Vui lòng chọn dự án' });
+  if (!task_id) {
+    return res.status(400).json({ error: 'Vui lòng chọn công việc (Task) được giao' });
   }
 
   // Business Rule #1: Check for active task
@@ -30,25 +30,61 @@ router.post('/start', authenticate, (req, res) => {
     });
   }
 
-  // Check project exists and is ACTIVE
-  const project = db.prepare("SELECT * FROM projects WHERE id = ? AND status = 'ACTIVE'").get(project_id);
-  if (!project) {
-    return res.status(404).json({ error: 'Dự án không tồn tại hoặc không đang hoạt động' });
+  // Mandatory Check-in check
+  const activeAttendance = db.prepare(`
+    SELECT id FROM attendance 
+    WHERE user_id = ? AND check_out IS NULL
+  `).get(req.user.id);
+
+  if (!activeAttendance) {
+    return res.status(403).json({ 
+      error: 'Yêu cầu vào ca (Check-in) trước khi bắt đầu ghi nhận công việc.' 
+    });
+  }
+
+  // Check task exists and is assigned to user
+  const task = db.prepare(`
+    SELECT t.*, p.status as project_status 
+    FROM tasks t 
+    JOIN projects p ON t.project_id = p.id 
+    WHERE t.id = ?
+  `).get(task_id);
+
+  if (!task) {
+    return res.status(404).json({ error: 'Công việc không tồn tại' });
+  }
+
+  if (task.assigned_to !== req.user.id) {
+    return res.status(403).json({ error: 'Bạn không được giao thực hiện công việc này' });
+  }
+
+  if (task.status === 'DONE' || task.status === 'CANCELLED') {
+    return res.status(400).json({ error: 'Công việc này đã hoàn thành hoặc bị hủy' });
+  }
+
+  if (task.project_status !== 'ACTIVE') {
+    return res.status(400).json({ error: 'Dự án liên quan không còn hoạt động' });
   }
 
   const id = generateId();
   const start_time = new Date().toISOString();
 
+  // If task is TODO, update to DOING
+  if (task.status === 'TODO') {
+    db.prepare("UPDATE tasks SET status = 'DOING', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(task_id);
+  }
+
   db.prepare(`
-    INSERT INTO worklogs (id, user_id, project_id, task_content, start_time, status)
+    INSERT INTO worklogs (id, user_id, project_id, task_id, start_time, status)
     VALUES (?, ?, ?, ?, ?, 'IN_PROGRESS')
-  `).run(id, req.user.id, project_id, task_content || '', start_time);
+  `).run(id, req.user.id, task.project_id, task_id, start_time);
 
   const worklog = db.prepare(`
-    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name
+    SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, t.title as task_title
     FROM worklogs w
     JOIN users u ON w.user_id = u.id
     JOIN projects p ON w.project_id = p.id
+    LEFT JOIN tasks t ON w.task_id = t.id
     WHERE w.id = ?
   `).get(id);
 
@@ -86,10 +122,11 @@ router.post('/stop', authenticate, (req, res) => {
   `).run(end_time, duration_hours, actual_cost, actual_revenue, activeTask.id);
 
   const worklog = db.prepare(`
-    SELECT w.*, u.full_name, p.project_name
+    SELECT w.*, u.full_name, p.project_name, t.title as task_title
     FROM worklogs w
     JOIN users u ON w.user_id = u.id
     JOIN projects p ON w.project_id = p.id
+    LEFT JOIN tasks t ON w.task_id = t.id
     WHERE w.id = ?
   `).get(activeTask.id);
 
@@ -123,9 +160,10 @@ router.get('/active', authenticate, (req, res) => {
 router.get('/my', authenticate, (req, res) => {
   const db = req.app.get('db');
   const worklogs = db.prepare(`
-    SELECT w.*, p.project_name
+    SELECT w.*, p.project_name, t.title as task_title
     FROM worklogs w
     JOIN projects p ON w.project_id = p.id
+    LEFT JOIN tasks t ON w.task_id = t.id
     WHERE w.user_id = ?
     ORDER BY w.start_time DESC
     LIMIT 50

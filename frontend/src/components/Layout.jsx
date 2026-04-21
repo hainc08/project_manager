@@ -1,28 +1,61 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getInitials, getRoleLabel } from '../utils/formatters';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Close sidebar when route changes (on mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   const navItems = getNavItems(user?.role);
 
   return (
     <div className="app-layout">
-      {/* Sidebar */}
-      <aside className="sidebar">
+      {/* Mobile Top Header */}
+      <header className="mobile-header">
+        <button className="hamburger-btn" onClick={toggleSidebar}>
+          {isSidebarOpen ? '✕' : '☰'}
+        </button>
+        <div className="mobile-brand">
+          <div className="sidebar-brand-icon" style={{ width: 32, height: 32, fontSize: '0.9rem' }}>LM</div>
+          <span className="sidebar-brand-text" style={{ fontSize: '1rem' }}>Labor Manager</span>
+        </div>
+        <div className="sidebar-user-avatar" style={{ width: 32, height: 32, fontSize: '0.8rem' }}>
+          {getInitials(user?.full_name)}
+        </div>
+      </header>
+
+      {/* Sidebar Overlay (Mobile) */}
+      {isSidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
+
+      {/* Sidebar Container */}
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <div className="sidebar-brand-icon">LM</div>
           <div>
             <div className="sidebar-brand-text">Labor Manager</div>
             <div className="sidebar-brand-sub">Quản lý nhân công</div>
           </div>
+          {/* Close button inside sidebar for mobile */}
+          <button className="sidebar-close-btn" onClick={() => setIsSidebarOpen(false)}>✕</button>
         </div>
 
         <nav className="sidebar-nav">
@@ -57,7 +90,7 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main Content Area */}
       <main className="main-content">
         <Outlet />
       </main>
@@ -87,12 +120,15 @@ function getNavItems(role) {
     }
   ];
 
-  if (role === 'ADMIN') {
+  if (role === 'ADMIN' || role === 'ACCOUNTANT') {
     items.push({
       title: 'Quản lý',
       links: [
-        { to: '/users', label: 'Nhân viên', icon: '👥' },
-        { to: '/projects', label: 'Dự án', icon: '📁' },
+        { to: '/tasks', label: 'Quản lý Task', icon: '📝' },
+        ...(role === 'ADMIN' ? [
+          { to: '/users', label: 'Nhân viên', icon: '👥' },
+          { to: '/projects', label: 'Dự án', icon: '📁' },
+        ] : [])
       ]
     });
   }
@@ -101,6 +137,7 @@ function getNavItems(role) {
     title: 'Báo cáo',
     links: [
       { to: '/reports', label: 'Báo cáo tài chính', icon: '💰' },
+      { to: '/attendance-report', label: 'Báo cáo chấm công', icon: '📅' },
     ]
   });
 
