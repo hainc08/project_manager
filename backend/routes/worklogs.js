@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
-const { generateId, roundMoney, calcDurationHours } = require('../utils/helpers');
+const { generateId, roundMoney, calcDurationHours, calculateLaborCost } = require('../utils/helpers');
 const XLSX = require('xlsx');
 
 /**
@@ -114,14 +114,37 @@ router.post('/stop', authenticate, (req, res) => {
   }
 
   const end_time = new Date().toISOString();
-  const duration_hours = calcDurationHours(activeTask.start_time, end_time);
-  const actual_cost = roundMoney(duration_hours * activeTask.standard_rate);
-  const actual_revenue = roundMoney(duration_hours * activeTask.billing_rate);
+  
+  // Get project info for location_type
+  const project = db.prepare("SELECT location_type FROM projects WHERE id = ?").get(activeTask.project_id);
+  
+  const metrics = calculateLaborCost(activeTask.start_time, end_time, activeTask.standard_rate, project.location_type);
 
   db.prepare(`
-    UPDATE worklogs SET end_time = ?, duration_hours = ?, actual_cost = ?, actual_revenue = ?, status = 'DONE'
+    UPDATE worklogs SET 
+      end_time = ?, 
+      duration_hours = ?, 
+      actual_cost = ?, 
+      actual_revenue = ?, 
+      status = 'DONE',
+      standard_hours = ?,
+      ot_hours = ?,
+      location_multiplier = ?,
+      ot_multiplier = ?,
+      holiday_multiplier = ?
     WHERE id = ?
-  `).run(end_time, duration_hours, actual_cost, actual_revenue, activeTask.id);
+  `).run(
+    end_time, 
+    roundMoney(metrics.standard_hours + metrics.ot_hours), 
+    metrics.actual_cost, 
+    roundMoney((metrics.standard_hours + metrics.ot_hours) * activeTask.billing_rate), // Revenue remains simple duration * rate
+    metrics.standard_hours,
+    metrics.ot_hours,
+    metrics.location_multiplier,
+    metrics.ot_multiplier,
+    metrics.holiday_multiplier,
+    activeTask.id
+  );
 
   const worklog = db.prepare(`
     SELECT w.*, u.full_name, p.project_name, t.title as task_title, pi.name as project_item_name
@@ -259,7 +282,7 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), (req, res)
     itemParams.push(user_id);
   }
 
-  itemSummaryQuery += ' GROUP BY COALESCE(pi.name, "Chưa phân loại") ORDER BY total_revenue DESC';
+  itemSummaryQuery += " GROUP BY COALESCE(pi.name, 'Chưa phân loại') ORDER BY total_revenue DESC";
   
   const item_summary = db.prepare(itemSummaryQuery).all(...itemParams).map(item => ({
     ...item,
@@ -409,17 +432,19 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), (req, r
     LIMIT 6
   `).all().reverse();
 
-  // Revenue by project
+  // Labor Cost by project
   const projectData = db.prepare(`
     SELECT 
       p.project_name,
+      p.status,
       COALESCE(SUM(w.actual_cost), 0) as cost,
       COALESCE(SUM(w.actual_revenue), 0) as revenue,
       COALESCE(SUM(w.duration_hours), 0) as hours
-    FROM worklogs w
-    JOIN projects p ON w.project_id = p.id
-    WHERE w.status = 'DONE'
-    GROUP BY w.project_id
+    FROM projects p
+    LEFT JOIN worklogs w ON p.id = w.project_id AND w.status = 'DONE'
+    WHERE p.status = 'ACTIVE'
+    GROUP BY p.id
+    ORDER BY p.created_at DESC
   `).all();
 
   res.json({

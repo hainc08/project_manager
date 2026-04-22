@@ -85,8 +85,8 @@ router.put('/:id/rate', authenticate, authorize('ADMIN'), (req, res) => {
   const { id } = req.params;
   const { standard_rate, billing_rate } = req.body;
 
-  if (standard_rate == null || billing_rate == null) {
-    return res.status(400).json({ error: 'Vui lòng nhập đơn giá' });
+  if (standard_rate == null) {
+    return res.status(400).json({ error: 'Vui lòng nhập chi phí lương' });
   }
 
   const user = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
@@ -94,8 +94,8 @@ router.put('/:id/rate', authenticate, authorize('ADMIN'), (req, res) => {
     return res.status(404).json({ error: 'User không tồn tại' });
   }
 
-  db.prepare('UPDATE users SET standard_rate = ?, billing_rate = ? WHERE id = ?')
-    .run(standard_rate, billing_rate, id);
+  db.prepare('UPDATE users SET standard_rate = ?, billing_rate = COALESCE(?, billing_rate) WHERE id = ?')
+    .run(standard_rate, billing_rate || 0, id);
 
   const updated = db.prepare(
     'SELECT id, username, full_name, role, contract_type, standard_rate, billing_rate FROM users WHERE id = ?'

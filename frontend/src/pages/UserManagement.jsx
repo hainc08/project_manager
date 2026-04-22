@@ -23,7 +23,7 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({
     username: '', password: '', full_name: '', role: 'STAFF',
-    contract_type: 'FULLTIME', standard_rate: '', billing_rate: ''
+    contract_type: 'FULLTIME', standard_rate: ''
   });
   const [error, setError] = useState('');
 
@@ -42,7 +42,7 @@ export default function UserManagement() {
 
   const openCreateModal = () => {
     setEditingUser(null);
-    setForm({ username: '', password: '', full_name: '', role: 'STAFF', contract_type: 'FULLTIME', standard_rate: '', billing_rate: '', standard_rate_display: '', billing_rate_display: '' });
+    setForm({ username: '', password: '', full_name: '', role: 'STAFF', contract_type: 'FULLTIME', standard_rate: '', standard_rate_display: '' });
     setError('');
     setShowModal(true);
   };
@@ -56,9 +56,7 @@ export default function UserManagement() {
       role: user.role,
       contract_type: user.contract_type,
       standard_rate: user.standard_rate,
-      billing_rate: user.billing_rate,
-      standard_rate_display: formatMoneyDisplay(user.standard_rate),
-      billing_rate_display: formatMoneyDisplay(user.billing_rate)
+      standard_rate_display: formatMoneyDisplay(user.standard_rate)
     });
     setError('');
     setShowModal(true);
@@ -83,15 +81,13 @@ export default function UserManagement() {
           full_name: form.full_name,
           role: form.role,
           contract_type: form.contract_type,
-          standard_rate: Number(form.standard_rate),
-          billing_rate: Number(form.billing_rate)
+          standard_rate: Number(form.standard_rate)
         });
       } else {
         if (!form.password) { setError('Vui lòng nhập mật khẩu'); return; }
         await api.post('/users', {
           ...form,
-          standard_rate: Number(form.standard_rate) || 0,
-          billing_rate: Number(form.billing_rate) || 0
+          standard_rate: Number(form.standard_rate) || 0
         });
       }
       setShowModal(false);
@@ -111,9 +107,9 @@ export default function UserManagement() {
     }
   };
 
-  const handleSetRate = async (userId, standard_rate, billing_rate) => {
+  const handleSetRate = async (userId, standard_rate) => {
     try {
-      await api.put(`/users/${userId}/rate`, { standard_rate, billing_rate });
+      await api.put(`/users/${userId}/rate`, { standard_rate });
       fetchUsers();
     } catch (err) {
       alert(err.response?.data?.error || 'Có lỗi xảy ra');
@@ -129,7 +125,7 @@ export default function UserManagement() {
     <>
       <div className="page-header">
         <h1 className="page-title">Quản lý Nhân viên</h1>
-        <p className="page-subtitle">Thêm, sửa, xóa nhân viên và thiết lập đơn giá</p>
+        <p className="page-subtitle">Thêm, sửa, xóa nhân viên và thiết lập chi phí lương</p>
       </div>
 
       <div className="page-body">
@@ -160,8 +156,7 @@ export default function UserManagement() {
                   <th>Nhân viên</th>
                   <th>Vai trò</th>
                   <th>Hợp đồng</th>
-                  <th className="text-right">Chi phí/giờ</th>
-                  <th className="text-right">Đơn giá/giờ</th>
+                  <th className="text-right">Chi phí/giờ (Lương)</th>
                   <th className="text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -179,7 +174,6 @@ export default function UserManagement() {
                     </td>
                     <td><span className="text-secondary">{getContractLabel(user.contract_type)}</span></td>
                     <td className="text-right font-mono">{formatCurrency(user.standard_rate)}</td>
-                    <td className="text-right font-mono">{formatCurrency(user.billing_rate)}</td>
                     <td className="text-right">
                       <div className="flex gap-sm" style={{ justifyContent: 'flex-end' }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => openEditModal(user)} title="Sửa">✏️</button>
@@ -246,15 +240,9 @@ export default function UserManagement() {
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Chi phí / giờ (VND)</label>
-                    <input className="form-input" type="text" inputMode="numeric" placeholder="0" value={form.standard_rate_display || ''} onChange={e => handleMoneyChange('standard_rate', e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Đơn giá / giờ (VND)</label>
-                    <input className="form-input" type="text" inputMode="numeric" placeholder="0" value={form.billing_rate_display || ''} onChange={e => handleMoneyChange('billing_rate', e.target.value)} />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Chi phí / giờ (Lương VND)</label>
+                  <input className="form-input" type="text" inputMode="numeric" placeholder="0" value={form.standard_rate_display || ''} onChange={e => handleMoneyChange('standard_rate', e.target.value)} />
                 </div>
               </div>
               <div className="modal-footer">

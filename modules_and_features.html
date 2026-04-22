@@ -328,7 +328,7 @@
                 <ul class="feature-list">
                     <li class="feature-item">Tạo mới, chỉnh sửa và quản lý danh sách dự án</li>
                     <li class="feature-item">Cập nhật trạng thái dự án (In Progress, Completed, On Hold)</li>
-                    <li class="feature-item">Theo dõi tiến độ và gán nhân sự cho dự án</li>
+                    <li class="feature-item">Gán nhiều hạng mục công việc cụ thể cho từng dự án</li>
                 </ul>
             </div>
 
@@ -371,8 +371,8 @@
                 <h2 class="module-title">Báo cáo Tài chính</h2>
                 <ul class="feature-list">
                     <li class="feature-item">Lọc dữ liệu theo khoảng thời gian và theo từng dự án</li>
-                    <li class="feature-item">Tính toán tổng hợp Cost, Revenue và Profit</li>
-                    <li class="feature-item">Giao diện tối ưu để xuất dữ liệu báo cáo</li>
+                    <li class="feature-item">Tổng hợp Cost, Revenue và Profit bóc tách theo từng hạng mục</li>
+                    <li class="feature-item">Giao diện tối ưu để xuất dữ liệu báo cáo chi tiết</li>
                 </ul>
             </div>
 
@@ -398,14 +398,25 @@
                 </ul>
             </div>
 
-            <!-- Module 10 (NEW) -->
+            <!-- Module 10 -->
             <div class="module-card">
                 <div class="module-icon">📝</div>
                 <h2 class="module-title">Quản lý Task (Giao việc)</h2>
                 <ul class="feature-list">
-                    <li class="feature-item">Admin điều phối, giao nhiệm vụ trực tiếp cho từng nhân sự</li>
+                    <li class="feature-item">Admin điều phối, giao nhiệm vụ và chọn hạng mục thi công</li>
                     <li class="feature-item">Quản lý trạng thái Task (Todo, Doing, Finished, Done)</li>
-                    <li class="feature-item">Cơ chế Nhân viên báo cáo xong - Quản trị viên duyệt hoàn thành</li>
+                    <li class="feature-item">Nhân viên báo cáo xong - Quản trị viên duyệt hoàn thành</li>
+                </ul>
+            </div>
+
+            <!-- Module 11 -->
+            <div class="module-card">
+                <div class="module-icon">📂</div>
+                <h2 class="module-title">Quản lý Hạng mục</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">Định nghĩa danh sách các hạng mục công việc dùng chung</li>
+                    <li class="feature-item">Phân loại công việc theo tính chất hoặc giai đoạn thi công</li>
+                    <li class="feature-item">Cơ sở để bóc tách tài chính chuyên sâu cho từng đầu việc</li>
                 </ul>
             </div>
         </div>
@@ -452,8 +463,8 @@
             <div class="flow-container">
                 <span class="flow-label label-admin">Quản trị viên (Admin)</span>
                 <div class="mermaid">flowchart LR
-    X["Đăng nhập"] --> Y["Quản lý User & Dự án"]
-    Y --> Z["Giao Task cho Nhân viên"]
+    X["Đăng nhập"] --> Y["Quản lý User, Dự án & Hạng mục"]
+    Y --> Z["Giao Task (theo hạng mục)"]
     Z --> W["Giám sát Live Monitor"]
     W --> V["Duyệt hoàn thành Task (DONE)"]
     V --> T["Xem Báo cáo Tổng hợp"]

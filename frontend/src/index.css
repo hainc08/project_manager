@@ -633,14 +633,24 @@ a:hover {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
   white-space: nowrap;
+}
+
+.data-table th:last-child {
+  border-right: none;
 }
 
 .data-table td {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
   color: var(--text-primary);
   vertical-align: middle;
+}
+
+.data-table td:last-child {
+  border-right: none;
 }
 
 .data-table tbody tr {
@@ -1431,3 +1441,40 @@ a:hover {
 .flex-center { display: flex; align-items: center; justify-content: center; }
 .gap-sm { gap: var(--spacing-sm); }
 .gap-md { gap: var(--spacing-md); }
+/* ============================================
+   ALERTS
+   ============================================ */
+.alert {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.alert-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.alert-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.alert-info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.alert-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: rgba(245, 158, 11, 0.2);
+}

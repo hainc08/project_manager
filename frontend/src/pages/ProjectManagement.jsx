@@ -8,7 +8,7 @@ export default function ProjectManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
-  const [form, setForm] = useState({ project_name: '', status: 'ACTIVE', item_ids: [] });
+  const [form, setForm] = useState({ project_name: '', status: 'ACTIVE', location_type: 'WORKSHOP', item_ids: [] });
   const [error, setError] = useState('');
 
   useEffect(() => { 
@@ -38,7 +38,7 @@ export default function ProjectManagement() {
 
   const openCreateModal = () => {
     setEditingProject(null);
-    setForm({ project_name: '', status: 'ACTIVE', item_ids: [] });
+    setForm({ project_name: '', status: 'ACTIVE', location_type: 'WORKSHOP', item_ids: [] });
     setError('');
     setShowModal(true);
   };
@@ -48,6 +48,7 @@ export default function ProjectManagement() {
     setForm({ 
       project_name: project.project_name, 
       status: project.status,
+      location_type: project.location_type || 'WORKSHOP',
       item_ids: project.items ? project.items.map(i => i.id) : []
     });
     setError('');
@@ -124,9 +125,14 @@ export default function ProjectManagement() {
                       Tạo: {formatDateTime(project.created_at)}
                     </span>
                   </div>
-                  <span className={`badge ${getStatusBadgeClass(project.status)}`}>
-                    {getStatusLabel(project.status)}
-                  </span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <span className={`badge ${project.location_type === 'SITE' ? 'badge-warning' : 'badge-info'}`}>
+                      {project.location_type === 'SITE' ? '🏗️ Công trường' : '🏠 Nhà xưởng'}
+                    </span>
+                    <span className={`badge ${getStatusBadgeClass(project.status)}`}>
+                      {getStatusLabel(project.status)}
+                    </span>
+                  </div>
                 </div>
                 
                 {project.items && project.items.length > 0 && (
@@ -170,6 +176,13 @@ export default function ProjectManagement() {
                     <option value="ACTIVE">Đang hoạt động</option>
                     <option value="ON_HOLD">Tạm dừng</option>
                     <option value="COMPLETED">Hoàn thành</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Địa điểm làm việc</label>
+                  <select className="form-select" value={form.location_type} onChange={e => setForm({...form, location_type: e.target.value})}>
+                    <option value="WORKSHOP">Nhà xưởng</option>
+                    <option value="SITE">Công trường (+20%)</option>
                   </select>
                 </div>
 

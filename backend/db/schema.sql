@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY,
     project_name TEXT NOT NULL,
+    location_type TEXT NOT NULL DEFAULT 'WORKSHOP' CHECK(location_type IN ('WORKSHOP', 'SITE')),
     status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'COMPLETED', 'ON_HOLD')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -31,6 +32,11 @@ CREATE TABLE IF NOT EXISTS worklogs (
     actual_cost REAL,
     actual_revenue REAL,
     status TEXT NOT NULL DEFAULT 'IN_PROGRESS' CHECK(status IN ('IN_PROGRESS', 'DONE')),
+    standard_hours REAL DEFAULT 0,
+    ot_hours REAL DEFAULT 0,
+    location_multiplier REAL DEFAULT 1.0,
+    ot_multiplier REAL DEFAULT 1.0,
+    holiday_multiplier REAL DEFAULT 1.0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (project_id) REFERENCES projects(id),

@@ -8,8 +8,9 @@ export default function AttendanceReport() {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [userId, setUserId] = useState('');
 
   useEffect(() => {

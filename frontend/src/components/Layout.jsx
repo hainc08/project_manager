@@ -137,7 +137,7 @@ function getNavItems(role) {
   items.push({
     title: 'Báo cáo',
     links: [
-      { to: '/reports', label: 'Báo cáo tài chính', icon: '💰' },
+      { to: '/reports', label: 'Báo cáo Chi phí', icon: '💰' },
       { to: '/attendance-report', label: 'Báo cáo chấm công', icon: '📅' },
     ]
   });

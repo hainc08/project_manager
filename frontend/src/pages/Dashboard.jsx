@@ -40,14 +40,11 @@ export default function Dashboard() {
 
   const monthlyChartData = (data?.monthly_data || []).map(d => ({
     name: d.month,
-    'Doanh thu': d.revenue,
-    'Chi phí': d.cost,
-    'Lợi nhuận': d.revenue - d.cost
+    'Chi phí nhân công': d.cost
   }));
 
   const projectChartData = (data?.project_data || []).map(d => ({
     name: d.project_name.length > 15 ? d.project_name.slice(0, 15) + '...' : d.project_name,
-    'Doanh thu': d.revenue,
     'Chi phí': d.cost,
     'Số giờ': d.hours
   }));
@@ -65,26 +62,16 @@ export default function Dashboard() {
     <>
       <div className="page-header">
         <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">Tổng quan hoạt động & tài chính</p>
+        <p className="page-subtitle">Tổng quan hoạt động & chi phí nhân công</p>
       </div>
 
       <div className="page-body">
         {/* Stats Cards */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-card-icon revenue">💰</div>
-            <div className="stat-card-label">Tổng doanh thu</div>
-            <div className="stat-card-value">{formatCurrency(data?.totals?.total_revenue)}</div>
-          </div>
-          <div className="stat-card">
             <div className="stat-card-icon cost">📉</div>
-            <div className="stat-card-label">Tổng chi phí</div>
-            <div className="stat-card-value">{formatCurrency(data?.totals?.total_cost)}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card-icon profit">📈</div>
-            <div className="stat-card-label">Lợi nhuận</div>
-            <div className="stat-card-value text-success">{formatCurrency(data?.totals?.profit)}</div>
+            <div className="stat-card-label">Tổng chi phí lương</div>
+            <div className="stat-card-value text-danger">{formatCurrency(data?.totals?.total_cost)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-card-icon staff">👷</div>
@@ -105,9 +92,9 @@ export default function Dashboard() {
 
         {/* Charts */}
         <div className="charts-grid">
-          {/* Monthly Revenue Chart */}
+          {/* Monthly Cost Chart */}
           <div className="chart-card">
-            <div className="chart-title">📊 Doanh thu & Chi phí theo tháng</div>
+            <div className="chart-title">📊 Chi phí nhân công theo tháng</div>
             {monthlyChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={monthlyChartData}>
@@ -119,9 +106,7 @@ export default function Dashboard() {
                     formatter={(value) => formatCurrency(value)}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="Doanh thu" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Chi phí" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Lợi nhuận" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="Chi phí nhân công" stroke="#ef4444" strokeWidth={3} dot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -146,8 +131,8 @@ export default function Dashboard() {
                     formatter={(value, name) => name === 'Số giờ' ? `${value} giờ` : formatCurrency(value)}
                   />
                   <Legend />
-                  <Bar dataKey="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Chi phí" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Số giờ" fill="#6366f1" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -171,9 +156,7 @@ export default function Dashboard() {
                   <tr>
                     <th>Dự án</th>
                     <th className="text-right">Số giờ</th>
-                    <th className="text-right">Chi phí</th>
-                    <th className="text-right">Doanh thu</th>
-                    <th className="text-right">Lợi nhuận</th>
+                    <th className="text-right">Chi phí lương</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -181,9 +164,7 @@ export default function Dashboard() {
                     <tr key={i}>
                       <td><strong>{p.project_name}</strong></td>
                       <td className="text-right font-mono">{formatDuration(p.hours)}</td>
-                      <td className="text-right font-mono text-danger">{formatCurrency(p.cost)}</td>
-                      <td className="text-right font-mono text-success">{formatCurrency(p.revenue)}</td>
-                      <td className="text-right font-mono text-info">{formatCurrency(p.revenue - p.cost)}</td>
+                      <td className="text-right font-mono text-danger" style={{ fontWeight: 600 }}>{formatCurrency(p.cost)}</td>
                     </tr>
                   ))}
                 </tbody>
