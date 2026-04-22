@@ -36,18 +36,60 @@ app.use(express.json());
 app.set('io', io);
 
 // Initialize Database
-const dbPath = path.join(__dirname, 'db', 'database.sqlite');
+const dbPath = process.env.DB_PATH 
+  ? path.resolve(__dirname, process.env.DB_PATH) 
+  : path.join(__dirname, 'db', 'database.sqlite');
+
+// Ensure directory exists
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Run schema
+// Run migrations (Add columns if missing)
+function runMigrations(db) {
+  const tables = {
+    projects: ['location_type'],
+    worklogs: ['standard_hours', 'ot_hours', 'location_multiplier', 'ot_multiplier', 'holiday_multiplier'],
+    tasks: ['project_item_id']
+  };
+
+  for (const [table, columns] of Object.entries(tables)) {
+    const info = db.prepare(`PRAGMA table_info(${table})`).all();
+    const existingColumns = info.map(c => c.name);
+    
+    for (const col of columns) {
+      if (!existingColumns.includes(col)) {
+        console.log(`🔧 Migrating: Adding column [${col}] to table [${table}]`);
+        // We need to be careful with DEFAULT values and CHECK constraints in ALTER TABLE
+        if (col === 'location_type') {
+          db.prepare(`ALTER TABLE projects ADD COLUMN location_type TEXT NOT NULL DEFAULT 'WORKSHOP'`).run();
+        } else if (table === 'worklogs' && col.includes('multiplier')) {
+          db.prepare(`ALTER TABLE worklogs ADD COLUMN ${col} REAL DEFAULT 1.0`).run();
+        } else if (table === 'worklogs' && col.includes('hours')) {
+          db.prepare(`ALTER TABLE worklogs ADD COLUMN ${col} REAL DEFAULT 0`).run();
+        } else {
+          db.prepare(`ALTER TABLE ${table} ADD COLUMN ${col} TEXT`).run();
+        }
+      }
+    }
+  }
+}
+
+// Run basic schema
 const schema = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
 db.exec(schema);
 
-// Run seed (only if users table is empty)
+// Run auto-migrations for existing data
+runMigrations(db);
+
+// Run seed (only if users table is empty and in development)
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
-if (userCount.count === 0) {
+if (userCount.count === 0 && process.env.NODE_ENV === 'development') {
   // We need to hash passwords properly for seed data
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('123456', 10);
