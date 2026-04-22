@@ -56,4 +56,25 @@ async function startServer() {
   }
 }
 
+// Đưa phần khởi động server lên TRƯỚC khi kết nối DB
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`🚀 Server ready on port ${PORT}`);
+});
+async function startServer() {
+  try {
+    const db = await initDB();
+    app.set('db', db);
+    console.log('✅ Database connected');
+
+    // Đăng ký các Route API
+    app.use('/api/auth', require('./routes/auth'));
+    // ... (các route khác)
+
+  } catch (err) {
+    console.error('❌ Database connection failed:', err);
+  }
+}
+
+
 startServer();
