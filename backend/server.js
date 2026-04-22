@@ -9,72 +9,56 @@ const { initDB } = require('./db');
 const app = express();
 const server = http.createServer(app);
 
-// Middleware cơ bản
+// 1. Middleware (Phải đặt đầu tiên)
 app.use(cors());
 app.use(express.json());
 
-// Kiểm tra sức khỏe (Health check)
+// 2. Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running!', timestamp: new Date().toISOString() });
 });
 
-// Phục vụ giao diện Frontend
+// 3. Đăng ký các API Routes (Đưa ra ngoài để nhận ngay lập tức)
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/projects', require('./routes/projects'));
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/worklogs', require('./routes/worklogs'));
+app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/project-items', require('./routes/project_items'));
+
+// 4. Phục vụ file tĩnh Frontend
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
+// 5. Fallback cho Frontend
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    const indexPath = path.join(__dirname, '../frontend/dist/index.html');
+    res.sendFile(indexPath, (err) => {
+      // Nếu không tìm thấy file dist (khi chạy dev), trả về 404 cho route này
+      if (err) res.status(404).send("Frontend build not found. This is normal in dev mode.");
+    });
+  }
+});
+
+// 6. Khởi tạo Database và Socket.io
 async function startServer() {
   try {
+    console.log('📦 Initializing Database...');
     const db = await initDB();
     app.set('db', db);
+    console.log('✅ Database connected');
 
-    // Socket.io
     const io = new Server(server, { cors: { origin: "*" } });
     app.set('io', io);
-
-    // Đăng ký Routes
-    app.use('/api/auth', require('./routes/auth'));
-    app.use('/api/users', require('./routes/users'));
-    app.use('/api/projects', require('./routes/projects'));
-    app.use('/api/tasks', require('./routes/tasks'));
-    app.use('/api/worklogs', require('./routes/worklogs'));
-    app.use('/api/attendance', require('./routes/attendance'));
-    app.use('/api/project-items', require('./routes/project_items'));
-
-    // Trả về Frontend cho các đường dẫn khác
-    app.get('*', (req, res) => {
-      if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-      }
-    });
 
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, () => {
       console.log(`🚀 Server ready on port ${PORT}`);
     });
-
   } catch (err) {
-    console.error('Failed to start server:', err);
+    console.error('❌ Failed to start server:', err);
   }
 }
-
-// Đưa phần khởi động server lên TRƯỚC khi kết nối DB
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`🚀 Server ready on port ${PORT}`);
-});
-async function startServer() {
-  try {
-    const db = await initDB();
-    app.set('db', db);
-    console.log('✅ Database connected');
-
-    // Đăng ký các Route API
-    app.use('/api/auth', require('./routes/auth'));
-    // ... (các route khác)
-
-  } catch (err) {
-    console.error('❌ Database connection failed:', err);
-  }
-}
-
 
 startServer();
