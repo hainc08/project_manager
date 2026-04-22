@@ -8,15 +8,16 @@ const { JWT_SECRET } = require('../middleware/auth');
  * POST /api/auth/login
  * TASK 01: User Authentication
  */
-router.post('/login', (req, res) => {
-  const db = req.app.get('db');
-  const { username, password } = req.body;
+router.post('/login', async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Vui lòng nhập tên đăng nhập và mật khẩu' });
-  }
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Vui lòng nhập tên đăng nhập và mật khẩu' });
+    }
 
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    const user = await db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (!user) {
     return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
   }
@@ -38,13 +39,17 @@ router.post('/login', (req, res) => {
     { expiresIn: '24h' }
   );
 
-  // Return user profile without password
-  const { password_hash, ...userProfile } = user;
+    // Return user profile without password
+    const { password_hash, ...userProfile } = user;
 
-  res.json({
-    token,
-    user: userProfile
-  });
+    res.json({
+      token,
+      user: userProfile
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
 });
 
 /**
@@ -52,13 +57,18 @@ router.post('/login', (req, res) => {
  * Get current user profile
  */
 const { authenticate } = require('../middleware/auth');
-router.get('/me', authenticate, (req, res) => {
-  const db = req.app.get('db');
-  const user = db.prepare('SELECT id, username, full_name, role, contract_type, standard_rate, billing_rate FROM users WHERE id = ?').get(req.user.id);
-  if (!user) {
-    return res.status(404).json({ error: 'User không tồn tại' });
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const user = await db.prepare('SELECT id, username, full_name, role, contract_type, standard_rate, billing_rate FROM users WHERE id = ?').get(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User không tồn tại' });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server' });
   }
-  res.json(user);
 });
 
 module.exports = router;
