@@ -14,9 +14,30 @@ app.use(cors());
 app.use(express.json());
 
 // 2. Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Backend is running!', timestamp: new Date().toISOString() });
+// file: backend/server.js
+
+app.get('/api/health', async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    // Thử truy vấn 1 câu lệnh đơn giản
+    await db.prepare('SELECT 1').get();
+
+    res.json({
+      status: 'ok',
+      database: 'Connected',
+      message: 'Backend & Database are running!',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      database: 'Disconnected',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
+
 
 // 3. Đăng ký các API Routes (Đưa ra ngoài để nhận ngay lập tức)
 app.use('/api/auth', require('./routes/auth'));

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const DEMO_ACCOUNTS = [
-  { username: 'admin', password: '123456', role: 'Admin', name: 'Nguyen Van Admin' },
-  { username: 'accountant', password: '123456', role: 'Kế toán', name: 'Tran Thi Ke Toan' },
-  { username: 'staff1', password: '123456', role: 'Nhân viên', name: 'Le Van Nhan Vien' },
-  { username: 'staff2', password: '123456', role: 'Nhân viên', name: 'Pham Thi Cong Nhan' },
+  { username: 'admin', password: '123456', role: 'Quản đốc', name: 'Nguyễn Văn Quản Đốc' },
+  { username: 'ktoan', password: '123456', role: 'Kế toán', name: 'Trần Thị Kế Toán' },
+  { username: 'thocnc1', password: '123456', role: 'Thợ CNC', name: 'Lê Văn CNC' },
+  { username: 'thocnc2', password: '123456', role: 'Thợ Tiện', name: 'Hoàng Văn Tiện' },
+  { username: 'thonguoi', password: '123456', role: 'Thợ Nguội', name: 'Phạm Văn Nguội' },
 ];
 
 export default function Login() {

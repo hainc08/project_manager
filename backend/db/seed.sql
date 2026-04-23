@@ -1,25 +1,40 @@
--- Seed Users (password: "123456" for all)
--- bcrypt hash of "123456": $2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dM\GCkMm
+-- DỮ LIỆU MẪU NGÀNH KHUÔN ĐÚC (Mật khẩu mặc định: 123456)
+-- Bcrypt hash của "123456": $2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm
 
-INSERT OR IGNORE INTO users (id, username, password_hash, full_name, role, contract_type, standard_rate, billing_rate) VALUES
-('u1', 'admin', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Nguyen Van Admin', 'ADMIN', 'FULLTIME', 150000, 300000),
-('u2', 'accountant', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Tran Thi Ke Toan', 'ACCOUNTANT', 'FULLTIME', 120000, 200000),
-('u3', 'staff1', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Le Van Nhan Vien', 'STAFF', 'FULLTIME', 80000, 150000),
-('u4', 'staff2', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Pham Thi Cong Nhan', 'STAFF', 'PARTTIME', 60000, 120000);
+SET FOREIGN_KEY_CHECKS=0;
 
--- Seed Projects
-INSERT OR IGNORE INTO projects (id, project_name, status) VALUES
-('p1', 'Website Redesign - Kosumi', 'ACTIVE'),
-('p2', 'Mobile App Development', 'ACTIVE'),
-('p3', 'Database Migration', 'ON_HOLD');
+-- 1. Nạp Danh sách Nhân sự chuyên môn
+INSERT IGNORE INTO users (id, username, password_hash, full_name, role, contract_type, standard_rate, billing_rate) VALUES
+('u_admin', 'admin', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Nguyễn Văn Quản Đốc', 'ADMIN', 'FULLTIME', 250000, 500000),
+('u_acc', 'ktoan', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Trần Thị Kế Toán', 'ACCOUNTANT', 'FULLTIME', 150000, 250000),
+('u_cnc1', 'thocnc1', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Lê Văn CNC (Bậc 5/7)', 'STAFF', 'FULLTIME', 120000, 220000),
+('u_cnc2', 'thocnc2', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Hoàng Văn Tiện', 'STAFF', 'FULLTIME', 110000, 200000),
+('u_nguoi1', 'thonguoi', '$2a$10$8K1p/e0qY9e0Rf3bRMqVSOe0cwvBWThecm0gN7o/UDP6dMGCkMm', 'Phạm Văn Nguội (Lắp ráp)', 'STAFF', 'FULLTIME', 100000, 180000);
 
--- Seed some completed WorkLogs for reports
-INSERT OR IGNORE INTO worklogs (id, user_id, project_id, task_content, start_time, end_time, duration_hours, actual_cost, actual_revenue, status) VALUES
-('w1', 'u3', 'p1', 'Thiết kế trang chủ', '2026-04-10 08:00:00', '2026-04-10 12:00:00', 4.00, 320000, 600000, 'DONE'),
-('w2', 'u3', 'p1', 'Code responsive layout', '2026-04-10 13:00:00', '2026-04-10 17:30:00', 4.50, 360000, 675000, 'DONE'),
-('w3', 'u4', 'p2', 'Setup React Native project', '2026-04-11 09:00:00', '2026-04-11 14:00:00', 5.00, 300000, 600000, 'DONE'),
-('w4', 'u3', 'p2', 'Thiết kế UI Login', '2026-04-12 08:30:00', '2026-04-12 11:30:00', 3.00, 240000, 450000, 'DONE'),
-('w5', 'u4', 'p1', 'Tối ưu hình ảnh', '2026-04-12 13:00:00', '2026-04-12 16:00:00', 3.00, 180000, 360000, 'DONE'),
-('w6', 'u3', 'p1', 'Kiểm thử cross-browser', '2026-04-13 08:00:00', '2026-04-13 12:00:00', 4.00, 320000, 600000, 'DONE'),
-('w7', 'u4', 'p2', 'Phát triển màn hình Dashboard', '2026-04-13 09:00:00', '2026-04-13 15:00:00', 6.00, 360000, 720000, 'DONE'),
-('w8', 'u3', 'p2', 'API integration', '2026-04-14 08:00:00', '2026-04-14 16:00:00', 8.00, 640000, 1200000, 'DONE');
+-- 2. Nạp Danh mục Công đoạn (Project Items)
+INSERT IGNORE INTO project_items (id, name, description) VALUES
+('i_design', 'Thiết kế 3D & CAM', 'Thiết kế kỹ thuật và lập trình đường chạy dao CNC'),
+('i_cnc_rough', 'Gia công phay thô CNC', 'Phay phá khối thép phôi'),
+('i_edm', 'Gia công xung điện EDM/Cắt dây', 'Gia công các chi tiết hốc sâu và khe hẹp'),
+('i_heat', 'Nhiệt luyện thép', 'Tôi chân không để đạt độ cứng HRC 52-55'),
+('i_polish', 'Mài bóng & Đánh bóng', 'Xử lý bề mặt lòng khuôn đạt độ bóng gương'),
+('i_assembly', 'Lắp ráp & Căn chỉnh', 'Lắp vỏ khuôn, hệ thống đẩy và thử kín');
+
+-- 3. Nạp Danh sách Dự án (Đơn hàng khuôn)
+INSERT IGNORE INTO projects (id, project_name, location_type, status) VALUES
+('p_001', 'Khuôn đúc vỏ động cơ xe máy (SKD61)', 'SITE', 'ACTIVE'),
+('p_002', 'Khuôn dập chậu rửa Inox (D2)', 'WORKSHOP', 'ACTIVE'),
+('p_003', 'Sửa chữa bộ khuôn đúc nắp máy (Dự án khẩn)', 'WORKSHOP', 'ACTIVE');
+
+-- 4. Liên kết Công đoạn vào Dự án (Mapping)
+INSERT IGNORE INTO project_item_mapping (project_id, item_id) VALUES
+('p_001', 'i_design'), ('p_001', 'i_cnc_rough'), ('p_001', 'i_heat'), ('p_001', 'i_polish'),
+('p_002', 'i_design'), ('p_002', 'i_cnc_rough'), ('p_002', 'i_assembly'),
+('p_003', 'i_edm'), ('p_003', 'i_assembly');
+
+-- 5. Nạp các Công việc mẫu (Tasks)
+INSERT IGNORE INTO tasks (id, project_id, project_item_id, assigned_to, title, status) VALUES
+('t_1', 'p_001', 'i_cnc_rough', 'u_cnc1', 'Phay thô lòng khuôn A (Mặt Cavity)', 'DOING'),
+('t_2', 'p_001', 'i_design', 'u_admin', 'Thiết kế hệ thống kênh dẫn nhựa', 'DONE');
+
+SET FOREIGN_KEY_CHECKS=1;
