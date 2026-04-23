@@ -13,31 +13,33 @@ router.post('/login', async (req, res) => {
     const db = req.app.get('db');
     const { username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Vui lòng nhập tên đăng nhập và mật khẩu' });
+    console.log('--- LOGIN ATTEMPT ---');
+    console.log('Username nhận được:', username);
+    const user = await db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+
+    if (!user) {
+      console.log('=> KHÔNG tìm thấy user trong Database');
+      return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
+    }
+    console.log('=> Đã tìm thấy user:', user.username);
+    console.log('=> Hash trong DB:', user.password_hash);
+    const isValid = bcrypt.compareSync(password, user.password_hash);
+    console.log('=> Kết quả so khớp mật khẩu:', isValid);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
     }
 
-    const user = await db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  if (!user) {
-    return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
-  }
-
-  const isValid = bcrypt.compareSync(password, user.password_hash);
-  if (!isValid) {
-    return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
-  }
-
-  // Generate JWT
-  const token = jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      full_name: user.full_name
-    },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        full_name: user.full_name
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
 
     // Return user profile without password
     const { password_hash, ...userProfile } = user;
