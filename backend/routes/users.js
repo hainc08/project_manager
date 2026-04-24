@@ -79,7 +79,14 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
       UPDATE users SET full_name = COALESCE(?, full_name), role = COALESCE(?, role),
       contract_type = COALESCE(?, contract_type), standard_rate = COALESCE(?, standard_rate),
       billing_rate = COALESCE(?, billing_rate) WHERE id = ?
-    `).run(full_name, role, contract_type, standard_rate, billing_rate, id);
+    `).run(
+      full_name || null, 
+      role || null, 
+      contract_type || null, 
+      standard_rate ?? null, 
+      billing_rate ?? null, 
+      id
+    );
 
     const updated = await db.prepare(
       'SELECT id, username, full_name, role, contract_type, standard_rate, billing_rate, created_at FROM users WHERE id = ?'

@@ -461,11 +461,11 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
     // Monthly revenue for chart (last 6 months)
     const monthlyDataRaw = await db.prepare(`
       SELECT 
-        strftime('%Y-%m', start_time) as month,
+        DATE_FORMAT(start_time, '%Y-%m') as month,
         COALESCE(SUM(actual_cost), 0) as cost,
         COALESCE(SUM(actual_revenue), 0) as revenue
       FROM worklogs WHERE status = 'DONE'
-      GROUP BY strftime('%Y-%m', start_time)
+      GROUP BY DATE_FORMAT(start_time, '%Y-%m')
       ORDER BY month DESC
       LIMIT 6
     `).all();

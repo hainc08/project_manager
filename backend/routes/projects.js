@@ -120,7 +120,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
     const updateProject = db.transaction(async (tx, pId, name, pStatus, items) => {
       await tx.prepare(`
         UPDATE projects SET project_name = COALESCE(?, project_name), status = COALESCE(?, status) WHERE id = ?
-      `).run(name, pStatus, pId);
+      `).run(name ?? null, pStatus ?? null, pId);
 
       if (items && Array.isArray(items)) {
         // Clear existing mappings and re-insert

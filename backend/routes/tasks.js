@@ -126,7 +126,15 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
           status = COALESCE(?, status),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(project_id, project_item_id || null, assigned_to, title, description, status, id);
+    `).run(
+      project_id ?? null, 
+      project_item_id ?? null, 
+      assigned_to ?? null, 
+      title ?? null, 
+      description ?? null, 
+      status ?? null, 
+      id
+    );
 
     const updated = await db.prepare(`
       SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name
