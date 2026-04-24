@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 /**
  * POST /api/auth/login
@@ -13,21 +14,21 @@ router.post('/login', async (req, res) => {
     const db = req.app.get('db');
     const { username, password } = req.body;
 
-    console.log('--- LOGIN ATTEMPT ---');
-    console.log('Username nhận được:', username);
+    logger.info('AUTH', `--- LOGIN ATTEMPT --- Username: ${username}`);
     const user = await db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-
-    if (!user) {
-      console.log('=> KHÔNG tìm thấy user trong Database');
-      return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
-    }
-    console.log('=> Đã tìm thấy user:', user.username);
-    console.log('=> Hash trong DB:', user.password_hash);
+ 
+     if (!user) {
+      logger.warn('AUTH', `=> KHÔNG tìm thấy user trong Database: ${username}`);
+       return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
+     }
+    logger.info('AUTH', `=> Đã tìm thấy user: ${user.username}`);
+    
     const isValid = bcrypt.compareSync(password, user.password_hash);
-    console.log('=> Kết quả so khớp mật khẩu:', isValid);
-    if (!isValid) {
-      return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
-    }
+    logger.info('AUTH', `=> Kết quả so khớp mật khẩu cho ${username}: ${isValid}`);
+    
+     if (!isValid) {
+       return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng' });
+     }
 
     // Generate JWT
     const token = jwt.sign(
@@ -49,7 +50,7 @@ router.post('/login', async (req, res) => {
       user: userProfile
     });
   } catch (err) {
-    console.error(err);
+    logger.error('AUTH', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });

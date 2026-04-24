@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { generateId, roundMoney, calcDurationHours, calculateLaborCost } = require('../utils/helpers');
 const XLSX = require('xlsx');
+const logger = require('../utils/logger');
 
 /**
  * POST /api/worklogs/start
@@ -96,7 +97,7 @@ router.post('/start', authenticate, async (req, res) => {
 
     res.status(201).json(worklog);
   } catch (err) {
-    console.error('Error starting worklog:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -167,7 +168,7 @@ router.post('/stop', authenticate, async (req, res) => {
 
     res.json(worklog);
   } catch (err) {
-    console.error('Error stopping worklog:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -192,7 +193,7 @@ router.get('/active', authenticate, async (req, res) => {
     `).all();
     res.json(activeTasks);
   } catch (err) {
-    console.error('Error fetching active worklogs:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -216,7 +217,7 @@ router.get('/my', authenticate, async (req, res) => {
     `).all(req.user.id);
     res.json(worklogs);
   } catch (err) {
-    console.error('Error fetching my worklogs:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -316,7 +317,7 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
 
     res.json({ worklogs, summary, item_summary });
   } catch (err) {
-    console.error('Error fetching report:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -376,7 +377,7 @@ router.get('/export', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
     res.setHeader('Content-Disposition', `attachment; filename=bao-cao-${new Date().toISOString().slice(0, 10)}.xlsx`);
     res.send(buffer);
   } catch (err) {
-    console.error('Error exporting worklogs:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).send('Lỗi server');
   }
 });
@@ -429,7 +430,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
 
     res.json(updated);
   } catch (err) {
-    console.error('Error updating worklog:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -495,7 +496,7 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
       project_data: projectData
     });
   } catch (err) {
-    console.error('Error fetching dashboard data:', err);
+    logger.error('WORKLOGS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });

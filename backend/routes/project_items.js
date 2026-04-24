@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { generateId } = require('../utils/helpers');
+const logger = require('../utils/logger');
 
 /**
  * GET /api/project-items
@@ -13,7 +14,7 @@ router.get('/', authenticate, async (req, res) => {
     const items = await db.prepare('SELECT * FROM project_items ORDER BY name ASC').all();
     res.json(items);
   } catch (err) {
-    console.error(err);
+    logger.error('PROJECT_ITEMS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -38,8 +39,8 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
     const newItem = await db.prepare('SELECT * FROM project_items WHERE id = ?').get(id);
     res.status(201).json(newItem);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Không thể tạo hạng mục. Có thể tên đã tồn tại.' });
+    logger.error('PROJECT_ITEMS', err);
+    res.status(500).json({ error: 'Không thể tạo hạng mục.' });
   }
 });
 
@@ -65,7 +66,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
     const updated = await db.prepare('SELECT * FROM project_items WHERE id = ?').get(id);
     res.json(updated);
   } catch (err) {
-    console.error(err);
+    logger.error('PROJECT_ITEMS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });

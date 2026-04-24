@@ -5,6 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const { initDB } = require('./db');
+const logger = require('./utils/logger');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,6 +13,17 @@ const server = http.createServer(app);
 // 1. Middleware (Phải đặt đầu tiên)
 app.use(cors());
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const userStr = req.user ? `[User:${req.user.id}]` : '[Guest]';
+    logger.info('HTTP', `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms ${userStr}`);
+  });
+  next();
+});
 
 // 2. Health check
 // file: backend/server.js
@@ -49,12 +61,16 @@ app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/project-items', require('./routes/project_items'));
 
 // 4. Phục vụ file tĩnh Frontend
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // 5. Fallback cho Frontend
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    const indexPath = path.join(__dirname, '../frontend/dist/index.html');
+    // const indexPath = path.join(__dirname, '../frontend/dist/index.html');
+    const indexPath = path.join(__dirname, 'public/index.html');
+
     res.sendFile(indexPath, (err) => {
       // Nếu không tìm thấy file dist (khi chạy dev), trả về 404 cho route này
       if (err) res.status(404).send("Frontend build not found. This is normal in dev mode.");
@@ -75,11 +91,18 @@ async function startServer() {
 
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, () => {
-      console.log(`🚀 Server ready on port ${PORT}`);
+      logger.info('SYSTEM', `🚀 Server ready on port ${PORT}`);
     });
   } catch (err) {
-    console.error('❌ Failed to start server:', err);
+    logger.error('SYSTEM', `❌ Failed to start server: ${err.message}`);
+    process.exit(1);
   }
 }
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  logger.error('EXCEPTION', err);
+  res.status(500).json({ error: 'Lỗi server nội bộ' });
+});
 
 startServer();

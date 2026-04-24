@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { generateId } = require('../utils/helpers');
+const logger = require('../utils/logger');
 
 /**
  * GET /api/tasks
@@ -40,8 +41,8 @@ const { generateId } = require('../utils/helpers');
     const tasks = await db.prepare(query).all(...params);
     res.json(tasks);
   } catch (err) {
-    console.error('Error fetching tasks:', err);
-    res.status(500).json({ error: 'Lỗi hệ thống khi tải danh sách công việc: ' + err.message });
+    logger.error('TASKS', err);
+    res.status(500).json({ error: 'Lỗi server' });
   }
 });
 
@@ -62,7 +63,7 @@ router.get('/my', authenticate, async (req, res) => {
     `).all(req.user.id);
     res.json(tasks);
   } catch (err) {
-    console.error('Error fetching tasks:', err);
+    logger.error('TASKS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -97,8 +98,8 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
     
     res.status(201).json(task);
   } catch (err) {
-    console.error('Error creating task:', err);
-    res.status(500).json({ error: 'Lỗi hệ thống khi tạo công việc: ' + err.message });
+    logger.error('TASKS', err);
+    res.status(500).json({ error: 'Lỗi server' });
   }
 });
 
@@ -138,7 +139,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
     
     res.json(updated);
   } catch (err) {
-    console.error('Error updating task:', err);
+    logger.error('TASKS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -171,7 +172,7 @@ router.put('/:id/finish', authenticate, async (req, res) => {
 
     res.json({ message: 'Đã gửi báo cáo hoàn thành. Đang chờ Admin duyệt.' });
   } catch (err) {
-    console.error('Error finishing task:', err);
+    logger.error('TASKS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -194,7 +195,7 @@ router.put('/:id/approve', authenticate, authorize('ADMIN'), async (req, res) =>
 
     res.json({ message: 'Đã duyệt hoàn thành công việc' });
   } catch (err) {
-    console.error('Error approving task:', err);
+    logger.error('TASKS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -216,7 +217,7 @@ router.delete('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
     await db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
     res.json({ message: 'Đã xóa công việc thành công' });
   } catch (err) {
-    console.error('Error deleting task:', err);
+    logger.error('TASKS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });

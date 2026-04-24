@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { authenticate, authorize } = require('../middleware/auth');
 const { generateId } = require('../utils/helpers');
+const logger = require('../utils/logger');
 
 /**
  * GET /api/users
@@ -16,7 +17,7 @@ router.get('/', authenticate, authorize('ADMIN'), async (req, res) => {
     ).all();
     res.json(users);
   } catch (err) {
-    console.error(err);
+    logger.error('USERS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -54,7 +55,7 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
 
     res.status(201).json(user);
   } catch (err) {
-    console.error(err);
+    logger.error('USERS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -86,7 +87,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
 
     res.json(updated);
   } catch (err) {
-    console.error(err);
+    logger.error('USERS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -119,7 +120,7 @@ router.put('/:id/rate', authenticate, authorize('ADMIN'), async (req, res) => {
 
     res.json(updated);
   } catch (err) {
-    console.error(err);
+    logger.error('USERS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });

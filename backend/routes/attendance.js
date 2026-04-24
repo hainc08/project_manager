@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { generateId, calcDurationHours } = require('../utils/helpers');
+const logger = require('../utils/logger');
 
 /**
  * POST /api/attendance/check-in
@@ -31,7 +32,7 @@ router.post('/check-in', authenticate, async (req, res) => {
 
     res.status(201).json({ id, check_in, status: 'PRESENT' });
   } catch (err) {
-    console.error('Error during check-in:', err);
+    logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -64,7 +65,7 @@ router.post('/check-out', authenticate, async (req, res) => {
 
     res.json({ ...activeAttendance, check_out, duration_hours });
   } catch (err) {
-    console.error('Error during check-out:', err);
+    logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -84,7 +85,7 @@ router.get('/my-status', authenticate, async (req, res) => {
 
     res.json({ active: activeAttendance || null });
   } catch (err) {
-    console.error('Error fetching attendance status:', err);
+    logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -106,7 +107,7 @@ router.get('/my-history', authenticate, async (req, res) => {
 
     res.json(history);
   } catch (err) {
-    console.error('Error fetching attendance history:', err);
+    logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -146,7 +147,7 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
     const report = await db.prepare(query).all(...params);
     res.json(report);
   } catch (err) {
-    console.error('Error fetching attendance report:', err);
+    logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });

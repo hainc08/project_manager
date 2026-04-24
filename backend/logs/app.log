@@ -1,0 +1,17 @@
+[2026-04-24 07:03:54] [INFO] [SYSTEM] 🚀 Server ready on port 3001
+[2026-04-24 07:05:31] [INFO] [SYSTEM] 🚀 Server ready on port 3001
+[2026-04-24 07:06:13] [INFO] [AUTH] --- LOGIN ATTEMPT --- Username: admin
+[2026-04-24 07:06:14] [ERROR] [AUTH] Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.
+Error: Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.
+    at Object.get (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\db\index.js:17:40)
+    at C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\routes\auth.js:18:77
+    at Layer.handle [as handle_request] (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\Users\admin\workspace\100.web_minhhiep\300.app\backend\node_modules\express\lib\router\index.js:175:3)
+[2026-04-24 07:06:14] [INFO] [HTTP] POST /api/auth/login 500 80ms [Guest]
+[2026-04-24 07:06:14] [INFO] [SYSTEM] 🚀 Server ready on port 3001

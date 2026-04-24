@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { generateId } = require('../utils/helpers');
+const logger = require('../utils/logger');
 
 /**
  * GET /api/projects
@@ -27,7 +28,7 @@ router.get('/', authenticate, async (req, res) => {
 
     res.json(projectsWithItems);
   } catch (err) {
-    console.error(err);
+    logger.error('PROJECTS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -52,7 +53,7 @@ router.get('/:id', authenticate, async (req, res) => {
 
     res.json({ ...project, items });
   } catch (err) {
-    console.error(err);
+    logger.error('PROJECTS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -96,7 +97,7 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
 
     res.status(201).json({ ...project, items });
   } catch (err) {
-    console.error(err);
+    logger.error('PROJECTS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -142,7 +143,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
 
     res.json({ ...updated, items });
   } catch (err) {
-    console.error(err);
+    logger.error('PROJECTS', err);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
