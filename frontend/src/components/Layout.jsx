@@ -127,6 +127,7 @@ function getNavItems(role) {
         { to: '/project-items', label: 'Quản lý Hạng mục', icon: '📚' },
         { to: '/tasks', label: 'Quản lý Task', icon: '📝' },
         { to: '/shift-management', label: 'Quản lý Ca làm việc', icon: '🕒' },
+        { to: '/payroll', label: 'Tính lương', icon: '💰' },
         ...(role === 'ADMIN' ? [
           { to: '/users', label: 'Nhân viên', icon: '👥' },
           { to: '/projects', label: 'Dự án', icon: '📁' },
@@ -136,7 +137,16 @@ function getNavItems(role) {
   }
 
 
-  items.push({
+  if (role === 'ADMIN' || role === 'ACCOUNTANT') {
+    items.push({
+      title: 'Bán hàng',
+      links: [
+        { to: '/sales/quotations', label: 'Báo giá', icon: '📄' },
+        { to: '/sales/customers', label: 'Khách hàng', icon: '🏢' },
+      ]
+    });
+
+    items.push({
     title: 'Báo cáo',
     links: [
       { to: '/reports', label: 'Báo cáo Chi phí', icon: '💰' },

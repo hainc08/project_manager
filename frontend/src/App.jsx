@@ -11,8 +11,13 @@ import StaffWorklog from './pages/StaffWorklog';
 import AttendanceReport from './pages/AttendanceReport';
 import ShiftManagement from './pages/ShiftManagement';
 import TaskManagement from './pages/TaskManagement';
+import PayrollAttendance from './pages/PayrollAttendance';
 
 import ProjectItemManagement from './pages/ProjectItemManagement';
+import QuotationList from './pages/QuotationList';
+import QuotationBuilder from './pages/QuotationBuilder';
+import QuotationPreview from './pages/QuotationPreview';
+import CustomerManagement from './pages/CustomerManagement';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -112,6 +117,37 @@ function AppRoutes() {
         <Route path="shift-management" element={
           <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
             <ShiftManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="payroll" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <PayrollAttendance />
+          </ProtectedRoute>
+        } />
+        {/* Sales Module */}
+        <Route path="sales/quotations" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <QuotationList />
+          </ProtectedRoute>
+        } />
+        <Route path="sales/quotations/new" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <QuotationBuilder />
+          </ProtectedRoute>
+        } />
+        <Route path="sales/quotations/:id/edit" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <QuotationBuilder />
+          </ProtectedRoute>
+        } />
+        <Route path="sales/quotations/:id/preview" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <QuotationPreview />
+          </ProtectedRoute>
+        } />
+        <Route path="sales/customers" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <CustomerManagement />
           </ProtectedRoute>
         } />
         <Route path="worklog" element={

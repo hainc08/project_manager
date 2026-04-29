@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 const { initDB } = require('./db');
 const logger = require('./utils/logger');
+const payrollRouter = require('./routes/payroll');
 
 const app = express();
 const server = http.createServer(app);
@@ -60,6 +61,8 @@ app.use('/api/worklogs', require('./routes/worklogs'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/project-items', require('./routes/project_items'));
 app.use('/api/shift-management', require('./routes/shift_management'));
+app.use('/api/payroll', payrollRouter);
+app.use('/api/sales', require('./routes/quotations'));
 
 
 // 4. Phục vụ file tĩnh Frontend
