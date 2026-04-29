@@ -145,8 +145,9 @@ function getNavItems(role) {
         { to: '/sales/customers', label: 'Khách hàng', icon: '🏢' },
       ]
     });
+  }
 
-    items.push({
+  items.push({
     title: 'Báo cáo',
     links: [
       { to: '/reports', label: 'Báo cáo Chi phí', icon: '💰' },
