@@ -107,10 +107,22 @@ function calculateLaborCost(startTime, endTime, hourlyRate, locationType) {
   };
 }
 
+/**
+ * Get current datetime in MySQL format (YYYY-MM-DD HH:MM:SS) 
+ * in the local timezone.
+ */
+function getMySQLDateTime() {
+  const now = new Date();
+  // Adjust to local timezone offset
+  const localTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+  return localTime.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 module.exports = { 
   roundMoney, 
   calcDurationHours, 
   generateId, 
   isVietnameseHoliday, 
-  calculateLaborCost 
+  calculateLaborCost,
+  getMySQLDateTime
 };

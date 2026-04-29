@@ -12,10 +12,23 @@ export default function FinancialReport() {
   const [error, setError] = useState(null);
   const [users, setUsers] = useState([]);
 
-  // Filters
-  const today = new Date().toISOString().split('T')[0];
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  // Filters - Mặc định Từ ngày (4 ngày trước) và Đến ngày (hôm nay) theo giờ địa phương
+  const getLocalDateStr = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const now = new Date();
+  const defaultEnd = getLocalDateStr(now);
+  
+  const date4DaysAgo = new Date();
+  date4DaysAgo.setDate(now.getDate() - 4);
+  const defaultStart = getLocalDateStr(date4DaysAgo);
+
+  const [startDate, setStartDate] = useState(defaultStart);
+  const [endDate, setEndDate] = useState(defaultEnd);
   const [projectId, setProjectId] = useState('');
   const [userId, setUserId] = useState('');
 

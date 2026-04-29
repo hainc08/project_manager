@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
-const { generateId, calcDurationHours } = require('../utils/helpers');
+const { generateId, calcDurationHours, getMySQLDateTime } = require('../utils/helpers');
 const logger = require('../utils/logger');
 
 /**
@@ -23,7 +23,7 @@ router.post('/check-in', authenticate, async (req, res) => {
     }
 
     const id = generateId();
-    const check_in = new Date().toISOString();
+    const check_in = getMySQLDateTime();
 
     await db.prepare(`
       INSERT INTO attendance (id, user_id, check_in, status)
@@ -54,7 +54,7 @@ router.post('/check-out', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy phiên check-in đang hoạt động.' });
     }
 
-    const check_out = new Date().toISOString();
+    const check_out = getMySQLDateTime();
     const duration_hours = calcDurationHours(activeAttendance.check_in, check_out);
 
     await db.prepare(`

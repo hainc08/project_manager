@@ -59,6 +59,8 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/worklogs', require('./routes/worklogs'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/project-items', require('./routes/project_items'));
+app.use('/api/shift-management', require('./routes/shift_management'));
+
 
 // 4. Phục vụ file tĩnh Frontend
 // app.use(express.static(path.join(__dirname, '../frontend/dist')));

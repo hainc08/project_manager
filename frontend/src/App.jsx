@@ -9,7 +9,9 @@ import ProjectManagement from './pages/ProjectManagement';
 import FinancialReport from './pages/FinancialReport';
 import StaffWorklog from './pages/StaffWorklog';
 import AttendanceReport from './pages/AttendanceReport';
+import ShiftManagement from './pages/ShiftManagement';
 import TaskManagement from './pages/TaskManagement';
+
 import ProjectItemManagement from './pages/ProjectItemManagement';
 
 function ProtectedRoute({ children, roles }) {
@@ -107,7 +109,13 @@ function AppRoutes() {
             <AttendanceReport />
           </ProtectedRoute>
         } />
+        <Route path="shift-management" element={
+          <ProtectedRoute roles={['ADMIN', 'ACCOUNTANT']}>
+            <ShiftManagement />
+          </ProtectedRoute>
+        } />
         <Route path="worklog" element={
+
           <ProtectedRoute roles={['STAFF']}>
             <StaffWorklog />
           </ProtectedRoute>

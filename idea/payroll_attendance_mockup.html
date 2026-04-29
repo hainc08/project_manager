@@ -1,0 +1,272 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Be+Vietnam+Pro:wght@400;500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f1117;--bg2:#161b27;--bg3:#1e2435;--bg4:#252d42;
+    --border:#2a3350;--border2:#374060;
+    --text:#e2e8f8;--text2:#8b96b8;--text3:#4a5578;
+    --blue:#4f8ef7;--blue-dim:#1e3a6e;
+    --green:#22c87a;--green-dim:#0d3d28;
+    --amber:#f5a623;--amber-dim:#3d2a0a;
+    --red:#f0506e;--red-dim:#3d1220;
+    --purple:#a78bfa;--purple-dim:#2d1f5e;
+    --font:'Be Vietnam Pro',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+  .screen{background:var(--bg);min-height:600px}
+
+  .page-header{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between}
+  .page-title{font-size:20px;font-weight:600;letter-spacing:-.3px}
+  .page-sub{font-size:12px;color:var(--text2);margin-top:3px}
+  .btn-primary{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:6px}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;font-size:13px;font-family:var(--font);cursor:pointer}
+  .btn-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green);border-radius:8px;padding:7px 14px;font-size:13px;font-family:var(--font);cursor:pointer;font-weight:500}
+
+  /* Filter bar */
+  .filter-bar{display:flex;gap:10px;padding:16px 24px 0;align-items:center;flex-wrap:wrap}
+  .filter-chip{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:6px}
+  .filter-chip.active{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+  .filter-select{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text);font-family:var(--font);outline:none;cursor:pointer}
+
+  /* Summary cards */
+  .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 24px 0}
+  .sum-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .sum-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+  .sum-val{font-size:22px;font-weight:600;margin-top:4px;font-family:var(--mono)}
+  .sum-sub{font-size:11px;color:var(--text2);margin-top:3px}
+  .sum-delta{font-size:11px;margin-top:4px;font-weight:500}
+  .delta-up{color:var(--green)}
+  .delta-down{color:var(--red)}
+
+  /* Main table */
+  .table-wrap{margin:16px 24px 0;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .tbl{width:100%;border-collapse:collapse}
+  .tbl th{background:var(--bg3);padding:9px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-family:var(--font);border-bottom:1px solid var(--border)}
+  .tbl td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl tr:hover td{background:var(--bg3)}
+  .emp-name{font-weight:500;color:var(--text)}
+  .emp-role{font-size:11px;color:var(--text3);margin-top:1px}
+  .mono{font-family:var(--mono);font-size:12px}
+  .status-full{background:var(--green-dim);color:var(--green);font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+  .status-partial{background:var(--amber-dim);color:var(--amber);font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+  .status-absent{background:var(--red-dim);color:var(--red);font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+
+  /* Day dots */
+  .day-dots{display:flex;gap:3px;flex-wrap:wrap;max-width:130px}
+  .dd{width:10px;height:10px;border-radius:2px}
+  .dd.ok{background:var(--green)}
+  .dd.late{background:var(--amber)}
+  .dd.absent{background:var(--red)}
+  .dd.leave{background:var(--blue)}
+  .dd.ot{background:var(--purple)}
+  .dd.holiday{background:var(--bg4);border:1px solid var(--border2)}
+
+  /* Salary breakdown */
+  .salary-col{text-align:right}
+  .base-pay{color:var(--text);font-family:var(--mono)}
+  .ot-pay{color:var(--purple);font-family:var(--mono);font-size:11px}
+  .deduct{color:var(--red);font-family:var(--mono);font-size:11px}
+  .total-pay{color:var(--green);font-family:var(--mono);font-weight:600}
+
+  /* Legend */
+  .legend{display:flex;gap:14px;padding:10px 24px;flex-wrap:wrap}
+  .leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+  .leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+  /* Footer action */
+  .footer-actions{display:flex;gap:10px;padding:16px 24px;justify-content:flex-end}
+</style>
+
+<div class="screen">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Bảng Chấm công & Tính lương</div>
+      <div class="page-sub">Tháng 4/2026 — Xưởng Khuôn Đúc</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost">📊 Xem biểu đồ</button>
+      <button class="btn-green">↓ Xuất Excel</button>
+      <button class="btn-primary">↓ Xuất PDF lương</button>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <select class="filter-select">
+      <option>Tháng 4 / 2026</option>
+      <option>Tháng 3 / 2026</option>
+    </select>
+    <div class="filter-chip active">Tất cả (12)</div>
+    <div class="filter-chip">Đủ công (8)</div>
+    <div class="filter-chip">Thiếu công (3)</div>
+    <div class="filter-chip">Vắng không phép (1)</div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <input type="text" placeholder="🔍 Tìm nhân viên..." style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text);font-family:var(--font);outline:none;width:180px">
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-row">
+    <div class="sum-card">
+      <div class="sum-label">Tổng nhân viên</div>
+      <div class="sum-val" style="color:var(--text)">12</div>
+      <div class="sum-sub">Tháng này</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Tổng giờ làm</div>
+      <div class="sum-val" style="color:var(--blue)">1,847h</div>
+      <div class="sum-sub delta-up">↑ +8% so với T3</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Tổng chi phí lương</div>
+      <div class="sum-val" style="color:var(--amber)">87.4tr</div>
+      <div class="sum-sub delta-up">↑ +5.2% so với T3</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Trường hợp vắng</div>
+      <div class="sum-val" style="color:var(--red)">4</div>
+      <div class="sum-sub delta-down">↑ +2 so với T3</div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend" style="margin-top:14px">
+    <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div> Đúng giờ</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div> Muộn/Sớm</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div> Vắng không phép</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--blue)"></div> Nghỉ phép</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--purple)"></div> OT</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--bg4);border:1px solid var(--border2)"></div> Nghỉ lễ</div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Nhân viên</th>
+          <th>Ngày công T4 (22 ngày)</th>
+          <th style="text-align:center">Đủ công</th>
+          <th style="text-align:center">OT (h)</th>
+          <th style="text-align:center">Vắng/Phép</th>
+          <th style="text-align:right">Lương cơ bản</th>
+          <th style="text-align:right">Cộng OT</th>
+          <th style="text-align:right">Khấu trừ</th>
+          <th style="text-align:right">Thực lĩnh</th>
+          <th style="text-align:center">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="emp-name">Nguyễn Văn Bình</div><div class="emp-role">Thợ CNC · Fulltime</div></td>
+          <td>
+            <div class="day-dots">
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd late"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd holiday"></div><div class="dd holiday"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ot"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div>
+            </div>
+          </td>
+          <td style="text-align:center"><span class="mono">21/22</span></td>
+          <td style="text-align:center"><span class="mono" style="color:var(--purple)">6.5h</span></td>
+          <td style="text-align:center"><span class="mono">0/1</span></td>
+          <td class="salary-col"><span class="base-pay">8,200,000</span></td>
+          <td class="salary-col"><span class="ot-pay">+487,500</span></td>
+          <td class="salary-col"><span class="deduct">-82,000</span></td>
+          <td class="salary-col"><span class="total-pay">8,605,500</span></td>
+          <td style="text-align:center"><span class="status-full">Đủ công</span></td>
+        </tr>
+        <tr>
+          <td><div class="emp-name">Trần Thị Linh</div><div class="emp-role">Thợ hàn · Fulltime</div></td>
+          <td>
+            <div class="day-dots">
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd late"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd leave"></div><div class="dd holiday"></div><div class="dd holiday"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd late"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div>
+            </div>
+          </td>
+          <td style="text-align:center"><span class="mono">20/22</span></td>
+          <td style="text-align:center"><span class="mono" style="color:var(--purple)">0h</span></td>
+          <td style="text-align:center"><span class="mono">1P/0V</span></td>
+          <td class="salary-col"><span class="base-pay">7,400,000</span></td>
+          <td class="salary-col"><span class="ot-pay">+0</span></td>
+          <td class="salary-col"><span class="deduct">-164,000</span></td>
+          <td class="salary-col"><span class="total-pay">7,236,000</span></td>
+          <td style="text-align:center"><span class="status-full">Đủ công</span></td>
+        </tr>
+        <tr>
+          <td><div class="emp-name">Lê Minh Quân</div><div class="emp-role">Lắp ráp · Parttime</div></td>
+          <td>
+            <div class="day-dots">
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd absent"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd holiday"></div><div class="dd holiday"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd absent"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd late"></div>
+              <div class="dd ok"></div><div class="dd ok"></div>
+            </div>
+          </td>
+          <td style="text-align:center"><span class="mono">18/22</span></td>
+          <td style="text-align:center"><span class="mono" style="color:var(--purple)">3h</span></td>
+          <td style="text-align:center"><span class="mono" style="color:var(--red)">2V/0P</span></td>
+          <td class="salary-col"><span class="base-pay">5,100,000</span></td>
+          <td class="salary-col"><span class="ot-pay">+180,000</span></td>
+          <td class="salary-col"><span class="deduct">-680,000</span></td>
+          <td class="salary-col"><span class="total-pay" style="color:var(--amber)">4,600,000</span></td>
+          <td style="text-align:center"><span class="status-partial">Thiếu công</span></td>
+        </tr>
+        <tr>
+          <td><div class="emp-name">Phạm Văn Nghĩa</div><div class="emp-role">EDM · Fulltime</div></td>
+          <td>
+            <div class="day-dots">
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd holiday"></div><div class="dd holiday"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ot"></div><div class="dd ot"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div>
+            </div>
+          </td>
+          <td style="text-align:center"><span class="mono">22/22</span></td>
+          <td style="text-align:center"><span class="mono" style="color:var(--purple)">12h</span></td>
+          <td style="text-align:center"><span class="mono">0/0</span></td>
+          <td class="salary-col"><span class="base-pay">8,000,000</span></td>
+          <td class="salary-col"><span class="ot-pay">+900,000</span></td>
+          <td class="salary-col"><span class="deduct">-0</span></td>
+          <td class="salary-col"><span class="total-pay">8,900,000</span></td>
+          <td style="text-align:center"><span class="status-full">Đủ công</span></td>
+        </tr>
+        <tr>
+          <td><div class="emp-name">Trần Văn Cảnh</div><div class="emp-role">Mài bóng · Fulltime</div></td>
+          <td>
+            <div class="day-dots">
+              <div class="dd ok"></div><div class="dd absent"></div><div class="dd absent"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd holiday"></div><div class="dd holiday"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd late"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div><div class="dd ok"></div>
+              <div class="dd ok"></div><div class="dd ok"></div>
+            </div>
+          </td>
+          <td style="text-align:center"><span class="mono">17/22</span></td>
+          <td style="text-align:center"><span class="mono" style="color:var(--purple)">0h</span></td>
+          <td style="text-align:center"><span class="mono" style="color:var(--red)">3V/0P</span></td>
+          <td class="salary-col"><span class="base-pay">6,500,000</span></td>
+          <td class="salary-col"><span class="ot-pay">+0</span></td>
+          <td class="salary-col"><span class="deduct">-1,300,000</span></td>
+          <td class="salary-col"><span class="total-pay" style="color:var(--red)">5,200,000</span></td>
+          <td style="text-align:center"><span class="status-absent">Vắng không phép</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-actions">
+    <button class="btn-ghost">← Tháng trước</button>
+    <button class="btn-ghost">Khóa & Duyệt bảng lương</button>
+    <button class="btn-primary">Gửi phiếu lương cho nhân viên</button>
+  </div>
+</div>

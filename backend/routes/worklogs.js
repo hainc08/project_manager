@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
-const { generateId, roundMoney, calcDurationHours, calculateLaborCost } = require('../utils/helpers');
+const { generateId, roundMoney, calcDurationHours, calculateLaborCost, getMySQLDateTime } = require('../utils/helpers');
 const XLSX = require('xlsx');
 const logger = require('../utils/logger');
 
@@ -69,7 +69,7 @@ router.post('/start', authenticate, async (req, res) => {
     }
 
     const id = generateId();
-    const start_time = new Date().toISOString();
+    const start_time = getMySQLDateTime();
 
     // If task is TODO, update to DOING
     if (task.status === 'TODO') {
@@ -120,7 +120,7 @@ router.post('/stop', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy công việc đang thực hiện' });
     }
 
-    const end_time = new Date().toISOString();
+    const end_time = getMySQLDateTime();
     
     // Get project info for location_type
     const project = await db.prepare("SELECT location_type FROM projects WHERE id = ?").get(activeTask.project_id);
@@ -458,6 +458,15 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
       FROM worklogs WHERE status = 'DONE'
     `).get();
 
+    // Task Summary for Dashboard (X / Y)
+    // X = Doing, Y = Total Uncompleted (not DONE, not CANCELLED)
+    const tasksStats = await db.prepare(`
+      SELECT 
+        COUNT(CASE WHEN status = 'DOING' THEN 1 END) as doing_tasks,
+        COUNT(CASE WHEN status NOT IN ('DONE', 'CANCELLED') THEN 1 END) as uncompleted_tasks
+      FROM tasks
+    `).get();
+
     // Monthly revenue for chart (last 6 months)
     const monthlyDataRaw = await db.prepare(`
       SELECT 
@@ -488,6 +497,7 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
 
     res.json({
       active_staff: activeStaff ? activeStaff.count : 0,
+      tasks_stats: tasksStats,
       totals: {
         ...totals,
         profit: totals ? roundMoney(totals.total_revenue - totals.total_cost) : 0

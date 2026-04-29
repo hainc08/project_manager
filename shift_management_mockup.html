@@ -1,0 +1,268 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Be+Vietnam+Pro:wght@400;500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f1117;--bg2:#161b27;--bg3:#1e2435;--bg4:#252d42;
+    --border:#2a3350;--border2:#374060;
+    --text:#e2e8f8;--text2:#8b96b8;--text3:#4a5578;
+    --blue:#4f8ef7;--blue-dim:#1e3a6e;
+    --green:#22c87a;--green-dim:#0d3d28;
+    --amber:#f5a623;--amber-dim:#3d2a0a;
+    --red:#f0506e;--red-dim:#3d1220;
+    --purple:#a78bfa;--purple-dim:#2d1f5e;
+    --font:'Be Vietnam Pro',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;padding:0}
+  .screen{background:var(--bg);min-height:600px;display:flex;flex-direction:column}
+
+  /* Header */
+  .page-header{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between}
+  .page-title{font-size:20px;font-weight:600;letter-spacing:-.3px}
+  .page-sub{font-size:12px;color:var(--text2);margin-top:3px}
+  .btn-primary{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:6px}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;font-size:13px;font-family:var(--font);cursor:pointer}
+
+  /* Tab bar */
+  .tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin:20px 24px 0;padding:0}
+  .tab{padding:8px 16px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+  .tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+  /* Week strip */
+  .week-strip{display:flex;gap:6px;padding:16px 24px 0;overflow-x:auto}
+  .day-cell{flex:1;min-width:74px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;transition:border-color .15s;position:relative}
+  .day-cell:hover{border-color:var(--border2)}
+  .day-cell.today{border-color:var(--blue);background:var(--blue-dim)}
+  .day-name{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+  .day-num{font-size:18px;font-weight:600;margin:2px 0}
+  .day-badge{font-size:10px;background:var(--bg4);color:var(--text2);padding:2px 6px;border-radius:20px;display:inline-block}
+  .day-cell.today .day-badge{background:var(--blue);color:#fff}
+
+  /* Shift cards */
+  .shifts-area{padding:16px 24px;display:flex;flex-direction:column;gap:10px}
+  .shift-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex}
+  .shift-accent{width:4px;flex-shrink:0}
+  .shift-accent.morning{background:var(--amber)}
+  .shift-accent.afternoon{background:var(--blue)}
+  .shift-accent.night{background:var(--purple)}
+  .shift-body{flex:1;padding:14px 16px}
+  .shift-row1{display:flex;align-items:center;justify-content:space-between}
+  .shift-name{font-size:14px;font-weight:600}
+  .shift-time{font-family:var(--mono);font-size:13px;color:var(--text2)}
+  .shift-row2{display:flex;align-items:center;gap:16px;margin-top:10px}
+  .shift-meta{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:4px}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+  .dot.green{background:var(--green)}
+  .dot.amber{background:var(--amber)}
+  .dot.red{background:var(--red)}
+  .shift-avatars{display:flex;margin-left:auto}
+  .avatar-sm{width:26px;height:26px;border-radius:50%;border:2px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;margin-left:-8px;background:var(--bg4)}
+  .avatar-sm:first-child{margin-left:0}
+  .avatar-sm.blue{background:var(--blue-dim);color:var(--blue)}
+  .avatar-sm.green{background:var(--green-dim);color:var(--green)}
+  .avatar-sm.amber{background:var(--amber-dim);color:var(--amber)}
+  .avatar-sm.purple{background:var(--purple-dim);color:var(--purple)}
+  .avatar-sm.more{background:var(--bg4);color:var(--text2)}
+  .shift-status-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .pill{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+  .pill.ok{background:var(--green-dim);color:var(--green)}
+  .pill.warn{background:var(--amber-dim);color:var(--amber)}
+  .pill.absent{background:var(--red-dim);color:var(--red)}
+  .pill.ot{background:var(--purple-dim);color:var(--purple)}
+
+  /* Attendance table */
+  .section-title{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;padding:0 24px;margin-top:4px;margin-bottom:10px}
+  .att-table{margin:0 24px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .att-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px}
+  .att-row:last-child{border-bottom:none}
+  .att-row.header{background:var(--bg3);padding:8px 14px}
+  .att-col-name{flex:2;font-size:12px}
+  .att-col-checkin{flex:1.5;font-size:12px;font-family:var(--mono)}
+  .att-col-checkout{flex:1.5;font-size:12px;font-family:var(--mono)}
+  .att-col-hours{flex:1;font-size:12px;font-family:var(--mono);text-align:right}
+  .att-col-status{flex:1.2;text-align:right}
+  .att-row.header .att-col-name,.att-row.header .att-col-checkin,.att-row.header .att-col-checkout,.att-row.header .att-col-hours,.att-row.header .att-col-status{font-size:11px;color:var(--text3);font-family:var(--font);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .att-name{font-weight:500;font-size:13px}
+  .att-role{font-size:11px;color:var(--text3);margin-top:1px}
+  .late-tag{font-size:10px;color:var(--amber);background:var(--amber-dim);padding:1px 6px;border-radius:10px;margin-left:6px}
+  .ot-tag{font-size:10px;color:var(--purple);background:var(--purple-dim);padding:1px 6px;border-radius:10px;margin-left:4px}
+
+  /* OT Alert banner */
+  .alert-banner{margin:12px 24px;background:var(--amber-dim);border:1px solid var(--amber);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+  .alert-icon{font-size:16px}
+  .alert-text{font-size:12px;color:var(--amber);flex:1}
+  .alert-action{font-size:11px;color:var(--amber);font-weight:600;cursor:pointer;text-decoration:underline;white-space:nowrap}
+</style>
+
+<div class="screen">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Quản lý Ca làm việc</div>
+      <div class="page-sub">Tuần 18 — 28/04 đến 04/05/2026</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost">Cài đặt ca</button>
+      <button class="btn-primary">＋ Thêm ca</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active">Lịch tuần</div>
+    <div class="tab">Danh sách ca</div>
+    <div class="tab">Cài đặt hệ số</div>
+  </div>
+
+  <!-- Week strip -->
+  <div class="week-strip">
+    <div class="day-cell"><div class="day-name">T2</div><div class="day-num">28</div><div class="day-badge">3 ca</div></div>
+    <div class="day-cell today"><div class="day-name">T3</div><div class="day-num">29</div><div class="day-badge">3 ca</div></div>
+    <div class="day-cell"><div class="day-name">T4</div><div class="day-num">30</div><div class="day-badge">3 ca</div></div>
+    <div class="day-cell"><div class="day-name">T5</div><div class="day-num">01</div><div class="day-badge">Lễ 30/4 — 2x</div></div>
+    <div class="day-cell"><div class="day-name">T6</div><div class="day-num">02</div><div class="day-badge">Lễ 1/5 — 2x</div></div>
+    <div class="day-cell"><div class="day-name">T7</div><div class="day-num">03</div><div class="day-badge">2 ca</div></div>
+    <div class="day-cell"><div class="day-name">CN</div><div class="day-num">04</div><div class="day-badge">Nghỉ</div></div>
+  </div>
+
+  <!-- Alert -->
+  <div class="alert-banner" style="margin-top:14px">
+    <span class="alert-icon">⚠</span>
+    <span class="alert-text"><strong>Nguyễn Văn Bình</strong> đã làm việc 9.5 giờ — vượt 1.5 giờ OT. Ca chiều hôm nay đang tự động áp hệ số <strong>1.5x</strong>.</span>
+    <span class="alert-action">Xem chi tiết →</span>
+  </div>
+
+  <!-- Shift cards -->
+  <div class="shifts-area">
+    <!-- Morning shift -->
+    <div class="shift-card">
+      <div class="shift-accent morning"></div>
+      <div class="shift-body">
+        <div class="shift-row1">
+          <div>
+            <div class="shift-name">Ca Sáng</div>
+            <div class="shift-time" style="margin-top:2px">06:00 — 14:00</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:var(--text2)">Hệ số lương</div>
+            <div style="font-size:15px;font-weight:600;color:var(--amber)">1.0x</div>
+          </div>
+        </div>
+        <div class="shift-row2">
+          <div class="shift-meta"><span class="dot green"></span> 6/7 có mặt</div>
+          <div class="shift-meta"><span class="dot amber"></span> 1 đi muộn</div>
+          <div class="shift-avatars">
+            <div class="avatar-sm blue">BH</div>
+            <div class="avatar-sm green">TL</div>
+            <div class="avatar-sm amber">MQ</div>
+            <div class="avatar-sm purple">VN</div>
+            <div class="avatar-sm more">+3</div>
+          </div>
+        </div>
+        <div class="shift-status-row">
+          <span class="pill ok">6 đúng giờ</span>
+          <span class="pill warn">1 muộn 12 phút</span>
+        </div>
+      </div>
+    </div>
+    <!-- Afternoon shift -->
+    <div class="shift-card">
+      <div class="shift-accent afternoon"></div>
+      <div class="shift-body">
+        <div class="shift-row1">
+          <div>
+            <div class="shift-name">Ca Chiều</div>
+            <div class="shift-time" style="margin-top:2px">14:00 — 22:00</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:var(--text2)">Hệ số lương</div>
+            <div style="font-size:15px;font-weight:600;color:var(--blue)">1.0x</div>
+          </div>
+        </div>
+        <div class="shift-row2">
+          <div class="shift-meta"><span class="dot green"></span> 5/5 có mặt</div>
+          <div class="shift-meta"><span class="dot red"></span> 1 vắng không phép</div>
+          <div class="shift-avatars">
+            <div class="avatar-sm blue">HT</div>
+            <div class="avatar-sm green">PV</div>
+            <div class="avatar-sm amber">KD</div>
+            <div class="avatar-sm more">+2</div>
+          </div>
+        </div>
+        <div class="shift-status-row">
+          <span class="pill ok">5 đúng giờ</span>
+          <span class="pill absent">1 vắng — Trần Văn C</span>
+          <span class="pill ot">2 OT (1.5x)</span>
+        </div>
+      </div>
+    </div>
+    <!-- Night shift -->
+    <div class="shift-card">
+      <div class="shift-accent night"></div>
+      <div class="shift-body">
+        <div class="shift-row1">
+          <div>
+            <div class="shift-name">Ca Đêm</div>
+            <div class="shift-time" style="margin-top:2px">22:00 — 06:00</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:var(--text2)">Hệ số lương</div>
+            <div style="font-size:15px;font-weight:600;color:var(--purple)">1.3x</div>
+          </div>
+        </div>
+        <div class="shift-row2">
+          <div class="shift-meta"><span class="dot green"></span> 4/4 có mặt</div>
+          <div class="shift-avatars">
+            <div class="avatar-sm purple">DT</div>
+            <div class="avatar-sm blue">NB</div>
+            <div class="avatar-sm green">LH</div>
+            <div class="avatar-sm more">+1</div>
+          </div>
+        </div>
+        <div class="shift-status-row">
+          <span class="pill ok">4 đúng giờ</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance detail -->
+  <div class="section-title">Chi tiết chấm công — Ca Sáng 29/04</div>
+  <div class="att-table">
+    <div class="att-row header">
+      <div class="att-col-name">Nhân viên</div>
+      <div class="att-col-checkin">Check-in</div>
+      <div class="att-col-checkout">Check-out</div>
+      <div class="att-col-hours">Giờ làm</div>
+      <div class="att-col-status">Trạng thái</div>
+    </div>
+    <div class="att-row">
+      <div class="att-col-name"><div class="att-name">Nguyễn Văn Bình</div><div class="att-role">Thợ CNC</div></div>
+      <div class="att-col-checkin" style="color:var(--green)">06:02</div>
+      <div class="att-col-checkout">14:00</div>
+      <div class="att-col-hours" style="color:var(--text)">7.97h</div>
+      <div class="att-col-status"><span class="pill ok">Đúng giờ</span></div>
+    </div>
+    <div class="att-row">
+      <div class="att-col-name"><div class="att-name">Trần Thị Linh</div><div class="att-role">Thợ hàn</div></div>
+      <div class="att-col-checkin" style="color:var(--amber)">06:14 <span class="late-tag">+14p</span></div>
+      <div class="att-col-checkout">14:00</div>
+      <div class="att-col-hours" style="color:var(--text)">7.77h</div>
+      <div class="att-col-status"><span class="pill warn">Muộn 14p</span></div>
+    </div>
+    <div class="att-row">
+      <div class="att-col-name"><div class="att-name">Lê Minh Quân</div><div class="att-role">Lắp ráp</div></div>
+      <div class="att-col-checkin" style="color:var(--green)">05:58</div>
+      <div class="att-col-checkout" style="color:var(--purple)">15:32 <span class="ot-tag">OT</span></div>
+      <div class="att-col-hours" style="color:var(--purple)">9.57h</div>
+      <div class="att-col-status"><span class="pill ot">OT 1.5x</span></div>
+    </div>
+    <div class="att-row">
+      <div class="att-col-name"><div class="att-name">Phạm Văn Nghĩa</div><div class="att-role">EDM</div></div>
+      <div class="att-col-checkin" style="color:var(--green)">06:01</div>
+      <div class="att-col-checkout">14:00</div>
+      <div class="att-col-hours" style="color:var(--text)">7.98h</div>
+      <div class="att-col-status"><span class="pill ok">Đúng giờ</span></div>
+    </div>
+  </div>
+  <div style="height:20px"></div>
+</div>

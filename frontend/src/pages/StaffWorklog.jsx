@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 import { formatElapsedTime, formatDateTime, formatDuration, getStatusLabel, getStatusBadgeClass } from '../utils/formatters';
+import ShiftCheckInWidget from './ShiftCheckInWidget';
 
 export default function StaffWorklog() {
   const [assignedTasks, setAssignedTasks] = useState([]);
@@ -141,6 +142,9 @@ export default function StaffWorklog() {
       </div>
 
       <div className="page-body">
+        {/* Shift Check-in Widget (Ca theo lịch) */}
+        <ShiftCheckInWidget onCheckInSuccess={fetchData} />
+
         {/* Daily Attendance Card */}
         <div className="card mb-lg" style={{ background: activeAttendance ? 'var(--card-bg)' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', border: activeAttendance ? '1px solid var(--border-color)' : '1px solid #3b82f6' }}>
           <div className="card-body attendance-card-body" style={{ padding: '24px' }}>

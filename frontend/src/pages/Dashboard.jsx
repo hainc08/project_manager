@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../utils/api';
 import { formatCurrency, formatNumber, formatDuration } from '../utils/formatters';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +39,6 @@ export default function Dashboard() {
       </>
     );
   }
-
   const monthlyChartData = (data?.monthly_data || []).map(d => ({
     name: d.month,
     'Chi phí nhân công': d.cost
@@ -83,10 +84,12 @@ export default function Dashboard() {
             <div className="stat-card-label">Tổng giờ làm</div>
             <div className="stat-card-value">{formatNumber(data?.totals?.total_hours)} giờ</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card" onClick={() => navigate('/tasks')} style={{ cursor: 'pointer' }}>
             <div className="stat-card-icon tasks">📋</div>
             <div className="stat-card-label">Tổng nhiệm vụ</div>
-            <div className="stat-card-value">{data?.totals?.total_tasks || 0}</div>
+            <div className="stat-card-value">
+              {data?.tasks_stats?.doing_tasks || 0} / {data?.tasks_stats?.uncompleted_tasks || 0}
+            </div>
           </div>
         </div>
 

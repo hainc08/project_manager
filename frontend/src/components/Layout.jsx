@@ -126,6 +126,7 @@ function getNavItems(role) {
       links: [
         { to: '/project-items', label: 'Quản lý Hạng mục', icon: '📚' },
         { to: '/tasks', label: 'Quản lý Task', icon: '📝' },
+        { to: '/shift-management', label: 'Quản lý Ca làm việc', icon: '🕒' },
         ...(role === 'ADMIN' ? [
           { to: '/users', label: 'Nhân viên', icon: '👥' },
           { to: '/projects', label: 'Dự án', icon: '📁' },
@@ -133,6 +134,7 @@ function getNavItems(role) {
       ]
     });
   }
+
 
   items.push({
     title: 'Báo cáo',
