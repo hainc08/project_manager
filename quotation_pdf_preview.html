@@ -1,0 +1,357 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161c2a;--bg3:#1c2438;
+  --border:#263044;
+  --text:#dde4f5;--text2:#8494b8;--text3:#4a5878;
+  --blue:#4f8ef7;--blue-dim:#1a3260;
+  --green:#1ec87a;--green-dim:#0b3322;
+  --amber:#f5a623;
+  --font:'Be Vietnam Pro',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+
+/* Top action bar */
+.action-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.action-bar-left{display:flex;align-items:center;gap:10px}
+.back-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-size:12px;color:var(--text2);font-family:var(--font);cursor:pointer}
+.back-btn:hover{background:var(--bg3)}
+.preview-label{font-size:12px;color:var(--text2)}
+.preview-strong{font-weight:600;color:var(--text)}
+.action-bar-right{display:flex;gap:8px}
+.btn{border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;font-family:var(--font);cursor:pointer;border:none;display:flex;align-items:center;gap:6px}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-amber{background:#3a2808;color:var(--amber);border:1px solid var(--amber)}
+.btn-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+
+/* Page wrapper */
+.page-wrap{padding:24px;display:flex;justify-content:center;background:var(--bg)}
+
+/* The "paper" */
+.paper{background:#ffffff;color:#1a1a2e;width:780px;min-height:1040px;border-radius:4px;box-shadow:0 4px 40px rgba(0,0,0,.5);font-family:var(--font);overflow:hidden}
+
+/* Paper header band */
+.paper-header{background:#0f1c3a;padding:28px 36px;position:relative;overflow:hidden}
+.ph-pattern{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%);background-size:12px 12px}
+.ph-content{position:relative;display:flex;justify-content:space-between;align-items:flex-start}
+.company-mark{display:flex;align-items:center;gap:14px}
+.company-logo{width:48px;height:48px;background:#4f8ef7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0}
+.company-name{font-size:20px;font-weight:700;color:#fff;line-height:1.2}
+.company-sub{font-size:11px;color:#7a98c8;margin-top:3px}
+.quote-badge{text-align:right}
+.quote-badge-label{font-size:10px;color:#7a98c8;letter-spacing:.1em;text-transform:uppercase}
+.quote-badge-num{font-size:22px;font-weight:700;color:#fff;font-family:var(--mono);margin-top:2px}
+.quote-badge-date{font-size:11px;color:#5e80b8;margin-top:3px}
+
+/* Status bar under header */
+.status-strip{background:#f0f4ff;padding:10px 36px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #dce6ff}
+.ss-item{text-align:center}
+.ss-label{font-size:10px;color:#6b7fa8;font-weight:500;text-transform:uppercase;letter-spacing:.07em}
+.ss-val{font-size:12px;font-weight:600;color:#1a1a2e;margin-top:2px}
+.status-badge{background:#eafbf3;color:#1a7a4a;border:1px solid #a3e6c6;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600}
+
+/* Body */
+.paper-body{padding:28px 36px}
+
+/* Parties row */
+.parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+.party-box{background:#f8faff;border:1px solid #e0e8ff;border-radius:8px;padding:14px 16px}
+.party-box.highlight{border-color:#c0d4ff;background:#f0f5ff}
+.party-title{font-size:10px;font-weight:700;color:#6b7fa8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.party-title-dot{width:5px;height:5px;border-radius:50%}
+.party-name{font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+.party-line{font-size:12px;color:#5a6a8a;padding:2px 0;display:flex;gap:8px}
+.party-line-key{color:#9aaac8;min-width:60px}
+
+/* Section title */
+.section-title{font-size:10px;font-weight:700;color:#0f1c3a;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-line{flex:1;height:1px;background:#e0e8ff}
+
+/* Items table */
+.items-tbl{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:12px}
+.items-tbl thead tr{background:#0f1c3a}
+.items-tbl thead th{color:#c0d0f0;padding:8px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.items-tbl thead th.r{text-align:right}
+.items-tbl tbody tr{border-bottom:1px solid #edf0fa}
+.items-tbl tbody tr:hover{background:#f8faff}
+.items-tbl tbody td{padding:8px 10px;color:#2a3050;vertical-align:middle}
+.items-tbl tbody td.r{text-align:right;font-family:var(--mono);font-size:11px}
+.items-tbl tbody td.amount{font-weight:600;color:#1a1a2e}
+.group-hdr td{background:#f0f4ff !important;color:#4a6098 !important;font-size:10px !important;font-weight:700 !important;text-transform:uppercase;letter-spacing:.08em;padding:6px 10px !important;border-bottom:none !important}
+.type-pill{display:inline-block;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:600}
+.tp-labor{background:#e8f0ff;color:#2a5ccc}
+.tp-mat{background:#e8fff5;color:#1a7a4a}
+.tp-svc{background:#fff8e8;color:#8a5a00}
+.tp-out{background:#fff0e8;color:#8a3a00}
+.row-num{color:#aab8d8;font-family:var(--mono);font-size:11px}
+
+/* Totals */
+.totals-grid{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start;margin-top:4px}
+.notes-box{background:#fffbf0;border:1px solid #f0d88a;border-radius:8px;padding:14px;font-size:11px;color:#5a4a10;line-height:1.7}
+.notes-title{font-size:10px;font-weight:700;color:#8a7020;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.totals-table{width:100%}
+.totals-table tr td{padding:5px 8px;font-size:12px;vertical-align:middle}
+.totals-table tr td:last-child{text-align:right;font-family:var(--mono)}
+.totals-table .tl-label{color:#5a6a8a}
+.totals-table .tl-sep{border-top:1px solid #e0e8ff}
+.totals-table .tl-total td{background:#0f1c3a;color:#fff;font-size:14px;font-weight:700;padding:10px 10px}
+.totals-table .tl-total td:first-child{border-radius:6px 0 0 6px}
+.totals-table .tl-total td:last-child{border-radius:0 6px 6px 0;color:#5affa0}
+.totals-table .tl-disc td{color:#d05030}
+.totals-table .tl-vat td{color:#2a5ccc}
+
+/* Payment terms */
+.payment-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.payment-box{background:#f0f4ff;border:1px solid #dce6ff;border-radius:8px;padding:12px 14px}
+.payment-title{font-size:10px;font-weight:700;color:#4a5898;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.payment-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#2a3050;padding:3px 0}
+.payment-dot{width:5px;height:5px;border-radius:50%;background:#4f8ef7;flex-shrink:0}
+
+/* Footer */
+.paper-footer{margin-top:30px;border-top:2px solid #e0e8ff;padding-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.sign-box{text-align:center}
+.sign-title{font-size:10px;font-weight:700;color:#6b7fa8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:40px}
+.sign-line{border-top:1px solid #c0cce8;padding-top:8px;font-size:11px;color:#6b7fa8}
+
+/* Stamp */
+.stamp-area{display:flex;align-items:center;justify-content:center;height:80px}
+.stamp{width:80px;height:80px;border:3px solid #2a5ccc;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;font-weight:700;color:#2a5ccc;text-transform:uppercase;letter-spacing:.05em;line-height:1.4;transform:rotate(-12deg);opacity:.3}
+</style>
+
+<!-- Action bar -->
+<div class="action-bar">
+  <div class="action-bar-left">
+    <button class="back-btn">← Quay lại</button>
+    <span class="preview-label">Xem trước: <span class="preview-strong">BG-2604-013 — Cty Cơ khí Thái Bình</span></span>
+  </div>
+  <div class="action-bar-right">
+    <button class="btn btn-ghost">✏ Chỉnh sửa</button>
+    <button class="btn btn-ghost">🖨 In</button>
+    <button class="btn btn-amber">📤 Gửi Zalo</button>
+    <button class="btn btn-primary">⬇ Tải PDF</button>
+  </div>
+</div>
+
+<div class="page-wrap">
+<div class="paper">
+
+  <!-- Header -->
+  <div class="paper-header">
+    <div class="ph-pattern"></div>
+    <div class="ph-content">
+      <div class="company-mark">
+        <div class="company-logo">KS</div>
+        <div>
+          <div class="company-name">KOSUMI FACTORY</div>
+          <div class="company-sub">Công ty TNHH Gia công Khuôn Đúc Kosumi</div>
+          <div class="company-sub" style="margin-top:3px">📍 Khu CN Phú Nghĩa, Chương Mỹ, Hà Nội &nbsp;|&nbsp; ☎ 024 3998 xxxx &nbsp;|&nbsp; 🌐 kosumi.vn</div>
+        </div>
+      </div>
+      <div class="quote-badge">
+        <div class="quote-badge-label">Báo giá số</div>
+        <div class="quote-badge-num">BG-2604-013</div>
+        <div class="quote-badge-date">Ngày: 29/04/2026</div>
+        <div class="quote-badge-date" style="color:#e8b458;margin-top:4px">Hiệu lực đến: 29/05/2026</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status strip -->
+  <div class="status-strip">
+    <div class="ss-item"><div class="ss-label">Trạng thái</div><div class="ss-val"><span class="status-badge">Đã gửi khách</span></div></div>
+    <div class="ss-item"><div class="ss-label">Người lập</div><div class="ss-val">Nguyễn Minh Khoa</div></div>
+    <div class="ss-item"><div class="ss-label">Thời gian giao</div><div class="ss-val">45 ngày làm việc</div></div>
+    <div class="ss-item"><div class="ss-label">Điều khoản TT</div><div class="ss-val">50% TT — 50% sau</div></div>
+    <div class="ss-item"><div class="ss-label">Loại tiền tệ</div><div class="ss-val">VNĐ (chưa VAT)</div></div>
+  </div>
+
+  <!-- Body -->
+  <div class="paper-body">
+
+    <!-- Parties -->
+    <div class="parties">
+      <div class="party-box">
+        <div class="party-title"><div class="party-title-dot" style="background:#4f8ef7"></div> Bên bán (Bên A)</div>
+        <div class="party-name">Công ty TNHH Kosumi Factory</div>
+        <div class="party-line"><span class="party-line-key">MST:</span> 0108 xxx xxx</div>
+        <div class="party-line"><span class="party-line-key">Địa chỉ:</span> Khu CN Phú Nghĩa, Hà Nội</div>
+        <div class="party-line"><span class="party-line-key">Email:</span> sales@kosumi.vn</div>
+        <div class="party-line"><span class="party-line-key">SĐT:</span> 024 3998 xxxx</div>
+      </div>
+      <div class="party-box highlight">
+        <div class="party-title"><div class="party-title-dot" style="background:#1ec87a"></div> Bên mua (Bên B)</div>
+        <div class="party-name">Công ty TNHH Cơ khí Thái Bình</div>
+        <div class="party-line"><span class="party-line-key">Liên hệ:</span> Ông Nguyễn Văn Hùng</div>
+        <div class="party-line"><span class="party-line-key">SĐT:</span> 0912 345 678</div>
+        <div class="party-line"><span class="party-line-key">Email:</span> hung@cokhi-thaibibi.vn</div>
+        <div class="party-line"><span class="party-line-key">Dự án:</span> Khuôn đúc vỏ ĐC xe máy SKD61 — 3 bộ</div>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="section-title">Chi tiết báo giá <div class="section-line"></div></div>
+    <table class="items-tbl">
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th>Hạng mục / Mô tả</th>
+          <th style="width:70px">Loại</th>
+          <th class="r" style="width:50px">SL</th>
+          <th style="width:40px">ĐVT</th>
+          <th class="r" style="width:110px">Đơn giá</th>
+          <th class="r" style="width:120px">Thành tiền</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="group-hdr"><td colspan="7">I. Nhân công</td></tr>
+        <tr>
+          <td class="row-num">01</td>
+          <td>Thiết kế 3D & CAM (Mastercam)</td>
+          <td><span class="type-pill tp-labor">Nhân công</span></td>
+          <td class="r">40</td><td>giờ</td>
+          <td class="r">350,000</td>
+          <td class="r amount">14,000,000</td>
+        </tr>
+        <tr>
+          <td class="row-num">02</td>
+          <td>Gia công phay thô CNC</td>
+          <td><span class="type-pill tp-labor">Nhân công</span></td>
+          <td class="r">60</td><td>giờ</td>
+          <td class="r">280,000</td>
+          <td class="r amount">16,800,000</td>
+        </tr>
+        <tr>
+          <td class="row-num">03</td>
+          <td>Gia công xung điện EDM / cắt dây</td>
+          <td><span class="type-pill tp-labor">Nhân công</span></td>
+          <td class="r">80</td><td>giờ</td>
+          <td class="r">320,000</td>
+          <td class="r amount">25,600,000</td>
+        </tr>
+        <tr>
+          <td class="row-num">04</td>
+          <td>Nhiệt luyện thép SKD61 (thuê ngoài)</td>
+          <td><span class="type-pill tp-out">Thuê ngoài</span></td>
+          <td class="r">3</td><td>bộ</td>
+          <td class="r">5,000,000</td>
+          <td class="r amount">15,000,000</td>
+        </tr>
+        <tr>
+          <td class="row-num">05</td>
+          <td>Mài bóng & đánh bóng khuôn</td>
+          <td><span class="type-pill tp-labor">Nhân công</span></td>
+          <td class="r">30</td><td>giờ</td>
+          <td class="r">250,000</td>
+          <td class="r amount">7,500,000</td>
+        </tr>
+        <tr class="group-hdr"><td colspan="7">II. Vật tư</td></tr>
+        <tr>
+          <td class="row-num">06</td>
+          <td>Thép SKD61 nhập khẩu (Hitachi Metals)</td>
+          <td><span class="type-pill tp-mat">Vật tư</span></td>
+          <td class="r">120</td><td>kg</td>
+          <td class="r">450,000</td>
+          <td class="r amount">54,000,000</td>
+        </tr>
+        <tr>
+          <td class="row-num">07</td>
+          <td>Điện cực đồng EDM</td>
+          <td><span class="type-pill tp-mat">Vật tư</span></td>
+          <td class="r">5</td><td>kg</td>
+          <td class="r">280,000</td>
+          <td class="r amount">1,400,000</td>
+        </tr>
+        <tr class="group-hdr"><td colspan="7">III. Phí dịch vụ & Vận chuyển</td></tr>
+        <tr>
+          <td class="row-num">08</td>
+          <td>Lắp đặt & chạy thử khuôn tại nhà máy khách hàng</td>
+          <td><span class="type-pill tp-svc">Dịch vụ</span></td>
+          <td class="r">1</td><td>lần</td>
+          <td class="r">5,000,000</td>
+          <td class="r amount">5,000,000</td>
+        </tr>
+        <tr>
+          <td class="row-num">09</td>
+          <td>Vận chuyển (nội thành Hà Nội)</td>
+          <td><span class="type-pill tp-svc">Dịch vụ</span></td>
+          <td class="r">1</td><td>lần</td>
+          <td class="r">2,200,000</td>
+          <td class="r amount">2,200,000</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Totals + Notes -->
+    <div class="totals-grid">
+      <div>
+        <div class="notes-box">
+          <div class="notes-title">📋 Điều khoản & Ghi chú</div>
+          • Giá chưa bao gồm VAT 10%.<br>
+          • Phí vận chuyển tính thêm nếu ngoài Hà Nội.<br>
+          • Báo giá có hiệu lực <strong>30 ngày</strong> kể từ ngày phát hành.<br>
+          • Chiết khấu 5% áp dụng cho đơn đặt hàng từ 2 bộ khuôn trở lên.<br>
+          • Bảo hành khuôn <strong>12 tháng</strong> hoặc 50,000 lần dập, tùy điều kiện nào đến trước.
+        </div>
+        <div class="payment-row">
+          <div class="payment-box">
+            <div class="payment-title">💳 Điều khoản thanh toán</div>
+            <div class="payment-item"><div class="payment-dot"></div>50% khi ký hợp đồng: <strong>74,456,250đ</strong></div>
+            <div class="payment-item"><div class="payment-dot"></div>50% khi giao hàng: <strong>74,456,250đ</strong></div>
+            <div class="payment-item"><div class="payment-dot" style="background:#1ec87a"></div>TK: 1234 5678 — VCB Hà Nội</div>
+          </div>
+          <div class="payment-box">
+            <div class="payment-title">📦 Thông tin giao hàng</div>
+            <div class="payment-item"><div class="payment-dot"></div>Thời gian: <strong>45 ngày làm việc</strong></div>
+            <div class="payment-item"><div class="payment-dot"></div>Giao tại kho khách hàng</div>
+            <div class="payment-item"><div class="payment-dot"></div>Bao gồm lắp đặt & chạy thử</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <table class="totals-table">
+          <tr><td class="tl-label">Nhân công</td><td>78,900,000đ</td></tr>
+          <tr><td class="tl-label">Vật tư</td><td>55,400,000đ</td></tr>
+          <tr><td class="tl-label">Dịch vụ & VC</td><td>7,200,000đ</td></tr>
+          <tr class="tl-sep"><td></td><td></td></tr>
+          <tr><td class="tl-label">Tạm tính</td><td><strong>141,500,000đ</strong></td></tr>
+          <tr class="tl-disc"><td>Chiết khấu (5%)</td><td>-7,075,000đ</td></tr>
+          <tr><td class="tl-label">Sau chiết khấu</td><td>134,425,000đ</td></tr>
+          <tr class="tl-vat"><td>VAT (10%)</td><td>+13,442,500đ</td></tr>
+          <tr class="tl-sep"><td></td><td></td></tr>
+          <tr class="tl-total">
+            <td>TỔNG CỘNG</td>
+            <td>147,867,500đ</td>
+          </tr>
+        </table>
+        <div style="background:#f0f4ff;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:11px;color:#4a5898;line-height:1.7">
+          <strong>Bằng chữ:</strong> Một trăm bốn mươi bảy triệu, tám trăm sáu mươi bảy nghìn, năm trăm đồng chẵn.
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer signatures -->
+    <div class="paper-footer">
+      <div class="sign-box">
+        <div class="sign-title">Đại diện Bên mua (Bên B)</div>
+        <div class="stamp-area">
+          <div class="stamp">Dấu &<br>chữ ký<br>bên B</div>
+        </div>
+        <div class="sign-line">Họ tên, chức vụ, ngày ký</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-title">Đại diện Bên bán (Bên A)</div>
+        <div class="stamp-area">
+          <div class="stamp">Kosumi<br>Factory<br>Dấu CT</div>
+        </div>
+        <div class="sign-line">Họ tên, chức vụ, ngày ký</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>

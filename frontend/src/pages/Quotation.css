@@ -1,0 +1,197 @@
+/* Quotation Module Styles */
+
+.quotation-page {
+  padding: 24px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.quotation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.quotation-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1px;
+}
+
+.quotation-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.quotation-tab.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.quotation-tab:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+/* Builder Layout */
+.builder-container {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .builder-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.builder-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.builder-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.builder-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Items Table */
+.items-table-container {
+  overflow-x: auto;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.items-table th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.items-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.group-header-row {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+}
+
+.group-header-row td {
+  padding: 8px 12px !important;
+  color: var(--text-accent);
+}
+
+.item-input {
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.item-input:focus {
+  border-color: var(--accent-primary);
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Sidebar Summary */
+.builder-sidebar {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summary-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.summary-row.total {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Status Pills */
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-draft { background: #475569; color: #f1f5f9; }
+.status-sent { background: #3b82f6; color: #f1f5f9; }
+.status-approved { background: #10b981; color: #f1f5f9; }
+.status-rejected { background: #ef4444; color: #f1f5f9; }
+
+/* PDF Preview Paper Styles */
+.paper-wrapper {
+  background: #f8fafc;
+  padding: 40px 20px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+.paper {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  padding: 40px;
+  color: #1e293b;
+  position: relative;
+}
+
+@media print {
+  .paper-wrapper { padding: 0; background: white; }
+  .paper { box-shadow: none; width: 100%; margin: 0; padding: 20px; }
+  .no-print { display: none !important; }
+}

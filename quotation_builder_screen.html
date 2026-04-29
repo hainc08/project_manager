@@ -1,0 +1,658 @@
+
+<!DOCTYPE html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161c2a;--bg3:#1c2438;--bg4:#232e45;--bg5:#2a3750;
+  --border:#263044;--border2:#334060;
+  --text:#dde4f5;--text2:#8494b8;--text3:#4a5878;
+  --blue:#4f8ef7;--blue-dim:#1a3260;--blue-glow:rgba(79,142,247,.15);
+  --green:#1ec87a;--green-dim:#0b3322;
+  --amber:#f5a623;--amber-dim:#3a2808;
+  --red:#f05070;--red-dim:#3a1020;
+  --purple:#9b7ff4;--purple-dim:#261955;
+  --cyan:#22d4f0;--cyan-dim:#072830;
+  --font:'Be Vietnam Pro',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --r:10px;--r2:14px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column}
+.sidebar-logo{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:600;line-height:1.2}
+.logo-sub{font-size:10px;color:var(--text3);font-weight:400}
+.sidebar-section{padding:16px 14px 6px;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;margin:2px 8px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--blue-dim);color:var(--blue)}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.nav-dot.blue{background:var(--blue)}
+.nav-dot.green{background:var(--green)}
+.nav-dot.amber{background:var(--amber)}
+.nav-dot.purple{background:var(--purple)}
+.sidebar-footer{margin-top:auto;border-top:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:10px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--blue)}
+.av-name{font-size:12px;font-weight:500}
+.av-role{font-size:10px;color:var(--text3)}
+
+/* Main */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.page-title{font-size:16px;font-weight:600;letter-spacing:-.2px}
+.page-crumb{font-size:11px;color:var(--text3);margin-top:2px}
+.top-actions{display:flex;gap:8px;align-items:center}
+.btn{border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:6px;border:none;transition:all .15s}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#3a7ef5}
+.btn-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.btn-amber{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+
+/* Content area */
+.content{flex:1;overflow-y:auto;padding:20px 24px;display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+
+/* Form panels */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.panel-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.panel-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.panel-body{padding:16px 18px}
+
+/* Form fields */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.triple{grid-template-columns:1fr 1fr 1fr}
+.form-row.single{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
+.form-input{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:var(--font);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--blue)}
+.form-select{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:var(--font);outline:none;cursor:pointer}
+.form-textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:var(--font);outline:none;resize:vertical;min-height:60px;width:100%}
+.tag-badge{display:inline-flex;align-items:center;gap:4px;background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:2px 8px;font-size:11px}
+
+/* Line items table */
+.items-table{width:100%;border-collapse:collapse}
+.items-table th{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+.items-table th.right{text-align:right}
+.items-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:12px}
+.items-table tr:last-child td{border-bottom:none}
+.items-table tr:hover td{background:var(--bg3)}
+.item-input{background:transparent;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:12px;width:100%}
+.item-input:focus{background:var(--bg3);border-radius:4px;padding:2px 4px}
+.num-input{background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;text-align:right;width:100%}
+.num-input:focus{background:var(--bg3);border-radius:4px;padding:2px 4px}
+.group-row td{background:var(--bg4);font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.04em;padding:6px 10px}
+.cat-pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500}
+.cat-blue{background:var(--blue-dim);color:var(--blue)}
+.cat-amber{background:var(--amber-dim);color:var(--amber)}
+.cat-green{background:var(--green-dim);color:var(--green)}
+.cat-purple{background:var(--purple-dim);color:var(--purple)}
+.cat-cyan{background:var(--cyan-dim);color:var(--cyan)}
+.mono{font-family:var(--mono)}
+.add-row-btn{display:flex;align-items:center;gap:6px;padding:8px 10px;color:var(--text3);font-size:12px;cursor:pointer;border-top:1px solid var(--border)}
+.add-row-btn:hover{color:var(--blue);background:var(--blue-glow)}
+.del-btn{width:20px;height:20px;border-radius:4px;background:transparent;border:none;cursor:pointer;color:var(--text3);display:flex;align-items:center;justify-content:center;font-size:12px}
+.del-btn:hover{background:var(--red-dim);color:var(--red)}
+
+/* Right sidebar panels */
+.right-col{display:flex;flex-direction:column;gap:12px}
+
+/* Summary card */
+.summary-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.sum-header{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600}
+.sum-body{padding:14px 16px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px}
+.sum-row.total{border-top:1px solid var(--border);margin-top:8px;padding-top:12px}
+.sum-label{color:var(--text2)}
+.sum-val{font-family:var(--mono);font-size:13px;color:var(--text)}
+.sum-val.total{font-size:16px;font-weight:600;color:var(--green)}
+.sum-val.profit{color:var(--blue)}
+.discount-row{background:var(--bg3);border-radius:8px;padding:10px 12px;margin-top:10px;display:flex;align-items:center;gap:8px}
+.discount-label{font-size:12px;color:var(--text2);flex:1}
+.discount-input{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--amber);font-family:var(--mono);width:60px;text-align:right;outline:none}
+.margin-bar{margin-top:14px}
+.margin-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:5px}
+.bar-track{background:var(--bg4);border-radius:4px;height:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--amber),var(--green));transition:width .3s}
+
+/* Status timeline */
+.timeline{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.tl-item{display:flex;gap:10px;align-items:flex-start}
+.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.tl-dot.done{background:var(--green)}
+.tl-dot.active{background:var(--blue);box-shadow:0 0 0 3px var(--blue-dim)}
+.tl-dot.idle{background:var(--border2)}
+.tl-text{font-size:12px;color:var(--text2);line-height:1.5}
+.tl-text strong{color:var(--text);font-weight:500}
+.tl-time{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px}
+.tl-line{width:1px;background:var(--border);height:100%;margin:4px 0 4px 3.5px;align-self:stretch;flex-shrink:0}
+
+/* Action panel */
+.action-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.action-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:2px}
+
+/* Quote list view */
+.quote-list{display:flex;flex-direction:column;gap:8px;padding:16px 18px}
+.quote-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+.quote-card:hover{border-color:var(--border2)}
+.quote-card.selected{border-color:var(--blue);background:var(--blue-glow)}
+.quote-num{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:500;flex-shrink:0;white-space:nowrap}
+.quote-info{flex:1;min-width:0}
+.quote-client{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quote-project{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quote-right{text-align:right;flex-shrink:0}
+.quote-amount{font-family:var(--mono);font-size:13px;font-weight:500}
+.quote-date{font-size:10px;color:var(--text3);margin-top:2px}
+.status-pill{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;margin-top:4px;display:inline-block}
+.sp-draft{background:var(--bg5);color:var(--text2)}
+.sp-sent{background:var(--blue-dim);color:var(--blue)}
+.sp-approved{background:var(--green-dim);color:var(--green)}
+.sp-rejected{background:var(--red-dim);color:var(--red)}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 24px}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-count{background:var(--bg4);color:var(--text3);font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px}
+.tab-count.blue{background:var(--blue-dim);color:var(--blue)}
+
+/* Highlight accent left */
+.accent-left{border-left:3px solid var(--blue)}
+
+/* Divider */
+.divider{height:1px;background:var(--border);margin:12px 0}
+</style>
+
+<div class="layout">
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">LM</div>
+    <div><div class="logo-text">Labor Manager</div><div class="logo-sub">Quản lý nhân công</div></div>
+  </div>
+
+  <div class="sidebar-section">Tổng quan</div>
+  <div class="nav-item"><div class="nav-dot"></div> Dashboard</div>
+  <div class="nav-item"><div class="nav-dot"></div> Theo dõi Live</div>
+
+  <div class="sidebar-section">Bán hàng</div>
+  <div class="nav-item active"><div class="nav-dot blue"></div> Quản lý Báo giá</div>
+  <div class="nav-item"><div class="nav-dot"></div> Khách hàng (CRM)</div>
+  <div class="nav-item"><div class="nav-dot"></div> Đơn hàng</div>
+
+  <div class="sidebar-section">Quản lý</div>
+  <div class="nav-item"><div class="nav-dot"></div> Quản lý Task</div>
+  <div class="nav-item"><div class="nav-dot"></div> Nhân viên</div>
+  <div class="nav-item"><div class="nav-dot"></div> Dự án</div>
+
+  <div class="sidebar-section">Báo cáo</div>
+  <div class="nav-item"><div class="nav-dot amber"></div> Báo cáo Chi phí</div>
+  <div class="nav-item"><div class="nav-dot green"></div> Báo cáo Chấm công</div>
+
+  <div class="sidebar-footer">
+    <div class="avatar">MK</div>
+    <div><div class="av-name">Minh Khoa</div><div class="av-role">Sales / KD</div></div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>
+      <div class="page-title">Quản lý Báo giá</div>
+      <div class="page-crumb">Bán hàng › Báo giá</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-ghost">⬇ Nhập từ template</button>
+      <button class="btn btn-primary" onclick="showCreate()">＋ Tạo báo giá mới</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="showList()">Tất cả <span class="tab-count">12</span></div>
+    <div class="tab">Bản nháp <span class="tab-count">3</span></div>
+    <div class="tab">Đã gửi <span class="tab-count blue">5</span></div>
+    <div class="tab">Chờ duyệt <span class="tab-count">2</span></div>
+    <div class="tab">Đã duyệt <span class="tab-count">2</span></div>
+  </div>
+
+  <!-- Content: List + Create -->
+  <div id="view-list">
+    <div style="padding:16px 24px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border)">
+      <input class="form-input" style="flex:1;max-width:320px" placeholder="🔍 Tìm khách hàng, mã báo giá...">
+      <select class="form-select">
+        <option>Tất cả tháng</option>
+        <option>Tháng 4/2026</option>
+        <option>Tháng 3/2026</option>
+      </select>
+      <select class="form-select">
+        <option>Tất cả nhân viên</option>
+        <option>Minh Khoa</option>
+        <option>Thanh Hà</option>
+      </select>
+    </div>
+    <div class="quote-list">
+      <div class="quote-card selected">
+        <div class="quote-num">BG-2604-012</div>
+        <div class="quote-info">
+          <div class="quote-client">Công ty TNHH Cơ khí Thái Bình</div>
+          <div class="quote-project">Khuôn đúc vỏ động cơ xe máy (SKD61) — 3 bộ</div>
+        </div>
+        <div class="quote-right">
+          <div class="quote-amount" style="color:var(--green)">145,500,000đ</div>
+          <div class="quote-date">29/04/2026</div>
+          <div class="status-pill sp-sent">Đã gửi</div>
+        </div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-num">BG-2604-011</div>
+        <div class="quote-info">
+          <div class="quote-client">Vietinak Hung Yen</div>
+          <div class="quote-project">Khuôn dập chậu rửa Inox D2 — 2 bộ</div>
+        </div>
+        <div class="quote-right">
+          <div class="quote-amount">88,000,000đ</div>
+          <div class="quote-date">24/04/2026</div>
+          <div class="status-pill sp-approved">Đã duyệt</div>
+        </div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-num">BG-2604-010</div>
+        <div class="quote-info">
+          <div class="quote-client">Cty Nhựa Tiền Phong</div>
+          <div class="quote-project">Sửa chữa bộ khuôn đúc nắp máy khẩn</div>
+        </div>
+        <div class="quote-right">
+          <div class="quote-amount">32,000,000đ</div>
+          <div class="quote-date">22/04/2026</div>
+          <div class="status-pill sp-draft">Bản nháp</div>
+        </div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-num">BG-2604-009</div>
+        <div class="quote-info">
+          <div class="quote-client">Công ty CP Ô tô Trường Hải</div>
+          <div class="quote-project">Gia công phay thô CNC — lô 200 chi tiết</div>
+        </div>
+        <div class="quote-right">
+          <div class="quote-amount">67,500,000đ</div>
+          <div class="quote-date">18/04/2026</div>
+          <div class="status-pill sp-rejected" style="background:var(--red-dim);color:var(--red)">Từ chối</div>
+        </div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-num">BG-2604-008</div>
+        <div class="quote-info">
+          <div class="quote-client">Công ty Điện tử Samsung VN</div>
+          <div class="quote-project">Thiết kế 3D & CAM khuôn vỏ thiết bị — 5 bộ</div>
+        </div>
+        <div class="quote-right">
+          <div class="quote-amount">210,000,000đ</div>
+          <div class="quote-date">15/04/2026</div>
+          <div class="status-pill sp-approved">Đã duyệt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content: Create form (hidden by default) -->
+  <div id="view-create" style="display:none">
+    <div class="content">
+      <!-- Left: Form -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+
+        <!-- Client info -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-icon" style="background:var(--blue-dim)">👤</div>
+              Thông tin Khách hàng
+            </div>
+            <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px">+ Khách hàng mới</button>
+          </div>
+          <div class="panel-body">
+            <div class="form-row">
+              <div class="form-group">
+                <div class="form-label">Tên khách hàng / Công ty</div>
+                <input class="form-input" value="Công ty TNHH Cơ khí Thái Bình">
+              </div>
+              <div class="form-group">
+                <div class="form-label">Người liên hệ</div>
+                <input class="form-input" value="Ông Nguyễn Văn Hùng">
+              </div>
+            </div>
+            <div class="form-row triple">
+              <div class="form-group">
+                <div class="form-label">Điện thoại</div>
+                <input class="form-input" value="0912 345 678">
+              </div>
+              <div class="form-group">
+                <div class="form-label">Email</div>
+                <input class="form-input" value="hung@cokhi-thaibibi.vn">
+              </div>
+              <div class="form-group">
+                <div class="form-label">Nguồn</div>
+                <select class="form-select">
+                  <option>Zalo</option>
+                  <option>Email</option>
+                  <option>Giới thiệu</option>
+                  <option>Facebook</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quote info -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-icon" style="background:var(--purple-dim)">📋</div>
+              Thông tin Báo giá
+            </div>
+            <div style="font-family:var(--mono);font-size:12px;color:var(--text3)">BG-2604-013</div>
+          </div>
+          <div class="panel-body">
+            <div class="form-row">
+              <div class="form-group">
+                <div class="form-label">Tên dự án / Hạng mục</div>
+                <input class="form-input" value="Khuôn đúc vỏ động cơ xe máy (SKD61) — 3 bộ">
+              </div>
+              <div class="form-group">
+                <div class="form-label">Hiệu lực báo giá đến</div>
+                <input class="form-input" type="date" value="2026-05-29">
+              </div>
+            </div>
+            <div class="form-row triple">
+              <div class="form-group">
+                <div class="form-label">Số lượng đặt</div>
+                <input class="form-input" value="3 bộ khuôn">
+              </div>
+              <div class="form-group">
+                <div class="form-label">Điều khoản TT</div>
+                <select class="form-select">
+                  <option>50% trước - 50% sau</option>
+                  <option>30% - 70%</option>
+                  <option>Thanh toán toàn bộ</option>
+                  <option>COD</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <div class="form-label">Thời gian giao hàng</div>
+                <input class="form-input" value="45 ngày làm việc">
+              </div>
+            </div>
+            <div class="form-row single">
+              <div class="form-group">
+                <div class="form-label">Ghi chú / Điều khoản đặc biệt</div>
+                <textarea class="form-textarea">Giá chưa bao gồm VAT 10%. Phí vận chuyển tính thêm nếu ngoài Hà Nội. Báo giá có hiệu lực 30 ngày kể từ ngày phát hành.</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line items -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-icon" style="background:var(--amber-dim)">📦</div>
+              Chi tiết Hạng mục & Đơn giá
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px">+ Thêm nhóm</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px">+ Thêm dòng</button>
+            </div>
+          </div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width:36px">#</th>
+                <th>Hạng mục / Mô tả công việc</th>
+                <th style="width:70px">Loại</th>
+                <th style="width:60px" class="right">SL</th>
+                <th style="width:55px" class="right">ĐVT</th>
+                <th style="width:105px" class="right">Đơn giá</th>
+                <th style="width:115px" class="right">Thành tiền</th>
+                <th style="width:32px"></th>
+              </tr>
+            </thead>
+            <tbody id="items-body">
+              <tr class="group-row"><td colspan="8">I. Nhân công</td></tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">1</td>
+                <td><input class="item-input" value="Thiết kế 3D & CAM (Mastercam)"></td>
+                <td><span class="cat-pill cat-blue">Nhân công</span></td>
+                <td><input class="num-input" value="40" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="giờ"></td>
+                <td><input class="num-input" value="350,000" id="up1" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt1">14,000,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">2</td>
+                <td><input class="item-input" value="Gia công phay thô CNC"></td>
+                <td><span class="cat-pill cat-blue">Nhân công</span></td>
+                <td><input class="num-input" value="60" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="giờ"></td>
+                <td><input class="num-input" value="280,000" id="up2" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt2">16,800,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">3</td>
+                <td><input class="item-input" value="Gia công xung điện EDM/cắt dây"></td>
+                <td><span class="cat-pill cat-blue">Nhân công</span></td>
+                <td><input class="num-input" value="80" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="giờ"></td>
+                <td><input class="num-input" value="320,000" id="up3" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt3">25,600,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">4</td>
+                <td><input class="item-input" value="Nhiệt luyện thép SKD61"></td>
+                <td><span class="cat-pill cat-amber">Thuê ngoài</span></td>
+                <td><input class="num-input" value="3" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="bộ"></td>
+                <td><input class="num-input" value="5,000,000" id="up4" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt4">15,000,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">5</td>
+                <td><input class="item-input" value="Mài bóng & đánh bóng khuôn"></td>
+                <td><span class="cat-pill cat-blue">Nhân công</span></td>
+                <td><input class="num-input" value="30" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="giờ"></td>
+                <td><input class="num-input" value="250,000" id="up5" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt5">7,500,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr class="group-row"><td colspan="8">II. Vật tư</td></tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">6</td>
+                <td><input class="item-input" value="Thép SKD61 nhập khẩu (Hitachi)"></td>
+                <td><span class="cat-pill cat-green">Vật tư</span></td>
+                <td><input class="num-input" value="120" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="kg"></td>
+                <td><input class="num-input" value="450,000" id="up6" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt6">54,000,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">7</td>
+                <td><input class="item-input" value="Điện cực đồng EDM"></td>
+                <td><span class="cat-pill cat-green">Vật tư</span></td>
+                <td><input class="num-input" value="5" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="kg"></td>
+                <td><input class="num-input" value="280,000" id="up7" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt7">1,400,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr class="group-row"><td colspan="8">III. Phí dịch vụ & Vận chuyển</td></tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">8</td>
+                <td><input class="item-input" value="Phí lắp đặt & chạy thử khuôn tại nhà máy KH"></td>
+                <td><span class="cat-pill cat-cyan">Dịch vụ</span></td>
+                <td><input class="num-input" value="1" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="lần"></td>
+                <td><input class="num-input" value="5,000,000" id="up8" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt8">5,000,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--text3)">9</td>
+                <td><input class="item-input" value="Vận chuyển (Hà Nội)"></td>
+                <td><span class="cat-pill cat-cyan">Dịch vụ</span></td>
+                <td><input class="num-input" value="1" style="width:50px"></td>
+                <td><input class="item-input" style="text-align:right;width:45px" value="lần"></td>
+                <td><input class="num-input" value="2,200,000" id="up9" oninput="calc()"></td>
+                <td class="mono" style="color:var(--text);text-align:right" id="tt9">2,200,000</td>
+                <td><button class="del-btn">✕</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="add-row-btn">＋ Thêm hạng mục</div>
+        </div>
+
+      </div>
+
+      <!-- Right col -->
+      <div class="right-col">
+
+        <!-- Summary -->
+        <div class="summary-card">
+          <div class="sum-header">Tóm tắt Báo giá</div>
+          <div class="sum-body">
+            <div class="sum-row"><span class="sum-label">Nhân công</span><span class="sum-val" id="s-labor">79,900,000đ</span></div>
+            <div class="sum-row"><span class="sum-label">Vật tư</span><span class="sum-val" id="s-mat">55,400,000đ</span></div>
+            <div class="sum-row"><span class="sum-label">Dịch vụ & VC</span><span class="sum-val" id="s-svc">7,200,000đ</span></div>
+            <div class="discount-row">
+              <span class="discount-label">Chiết khấu</span>
+              <input class="discount-input" id="discount" value="5" oninput="calc()">
+              <span style="font-size:12px;color:var(--amber)">%</span>
+            </div>
+            <div class="sum-row"><span class="sum-label">Tạm tính</span><span class="sum-val" id="s-subtotal">142,500,000đ</span></div>
+            <div class="sum-row"><span class="sum-label" style="color:var(--text3)">Chiết khấu (5%)</span><span class="sum-val" style="color:var(--red);font-size:12px" id="s-disc-amt">-7,125,000đ</span></div>
+            <div class="sum-row"><span class="sum-label" style="color:var(--text3)">VAT (10%)</span><span class="sum-val" style="font-size:12px" id="s-vat">+13,537,500đ</span></div>
+            <div class="sum-row total">
+              <span style="font-size:13px;font-weight:600">Tổng cộng</span>
+              <span class="sum-val total" id="s-total">148,912,500đ</span>
+            </div>
+            <div class="margin-bar">
+              <div class="margin-label"><span>Margin ước tính</span><span id="s-margin" style="color:var(--green);font-weight:500">38%</span></div>
+              <div class="bar-track"><div class="bar-fill" id="margin-bar-fill" style="width:38%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="summary-card">
+          <div class="sum-header">Trạng thái & Lịch sử</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="tl-dot done"></div>
+                <div class="tl-line" style="height:30px"></div>
+              </div>
+              <div><div class="tl-text"><strong>Tạo báo giá</strong></div><div class="tl-time">29/04 09:14 — Minh Khoa</div></div>
+            </div>
+            <div class="tl-item">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="tl-dot active"></div>
+                <div class="tl-line" style="height:30px;background:var(--blue-dim)"></div>
+              </div>
+              <div><div class="tl-text"><strong>Đang soạn thảo</strong></div><div class="tl-time">Chưa gửi khách hàng</div></div>
+            </div>
+            <div class="tl-item">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div class="tl-dot idle"></div>
+                <div class="tl-line" style="height:30px"></div>
+              </div>
+              <div><div class="tl-text" style="color:var(--text3)">Gửi cho khách hàng</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot idle"></div>
+              <div><div class="tl-text" style="color:var(--text3)">Khách xác nhận / từ chối</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-panel">
+          <div class="action-title">Thao tác nhanh</div>
+          <button class="btn btn-ghost" style="justify-content:center">💾 Lưu nháp</button>
+          <button class="btn btn-ghost" style="justify-content:center">👁 Xem trước PDF</button>
+          <button class="btn btn-amber" style="justify-content:center">📤 Gửi Zalo / Email</button>
+          <button class="btn btn-green" style="justify-content:center">✅ Khách đã duyệt → Tạo Dự án</button>
+          <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">Tự động tạo dự án và gán hạng mục từ báo giá</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+function showCreate(){
+  document.getElementById('view-list').style.display='none';
+  document.getElementById('view-create').style.display='block';
+}
+function showList(){
+  document.getElementById('view-list').style.display='block';
+  document.getElementById('view-create').style.display='none';
+}
+
+// Auto-calc totals
+const items = [
+  {qty:40,up:'up1',tt:'tt1'},{qty:60,up:'up2',tt:'tt2'},{qty:80,up:'up3',tt:'tt3'},
+  {qty:3,up:'up4',tt:'tt4'},{qty:30,up:'up5',tt:'tt5'},{qty:120,up:'up6',tt:'tt6'},
+  {qty:5,up:'up7',tt:'tt7'},{qty:1,up:'up8',tt:'tt8'},{qty:1,up:'up9',tt:'tt9'}
+];
+const cats = {1:'labor',2:'labor',3:'labor',4:'labor',5:'labor',6:'mat',7:'mat',8:'svc',9:'svc'};
+
+function parseNum(s){return parseInt((s||'0').replace(/[^0-9]/g,''))||0}
+function fmt(n){return n.toLocaleString('vi-VN')+'đ'}
+
+function calc(){
+  let labor=0,mat=0,svc=0;
+  items.forEach((it,i)=>{
+    const up = parseNum(document.getElementById(it.up)?.value||'0');
+    const total = it.qty * up;
+    const el = document.getElementById(it.tt);
+    if(el) el.textContent = total.toLocaleString('vi-VN');
+    if(i<5) labor+=total; else if(i<7) mat+=total; else svc+=total;
+  });
+  const disc = parseFloat(document.getElementById('discount').value)||0;
+  const subtotal = labor+mat+svc;
+  const discAmt = subtotal*disc/100;
+  const afterDisc = subtotal-discAmt;
+  const vat = afterDisc*0.1;
+  const total = afterDisc+vat;
+  const margin = Math.round((1-(labor*0.6+mat*0.8)/subtotal)*100);
+
+  document.getElementById('s-labor').textContent = labor.toLocaleString('vi-VN')+'đ';
+  document.getElementById('s-mat').textContent = mat.toLocaleString('vi-VN')+'đ';
+  document.getElementById('s-svc').textContent = svc.toLocaleString('vi-VN')+'đ';
+  document.getElementById('s-subtotal').textContent = subtotal.toLocaleString('vi-VN')+'đ';
+  document.getElementById('s-disc-amt').textContent = '-'+discAmt.toLocaleString('vi-VN')+'đ';
+  document.getElementById('s-vat').textContent = '+'+Math.round(vat).toLocaleString('vi-VN')+'đ';
+  document.getElementById('s-total').textContent = Math.round(total).toLocaleString('vi-VN')+'đ';
+  const m = Math.max(5,Math.min(90,margin));
+  document.getElementById('s-margin').textContent = m+'%';
+  document.getElementById('margin-bar-fill').style.width = m+'%';
+}
+</script>
