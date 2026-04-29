@@ -36,7 +36,17 @@ router.post('/customers', async (req, res) => {
     await db.prepare(`
       INSERT INTO customers (id, company_name, contact_name, phone, email, address, tax_code, source, note)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, company_name, contact_name, phone, email, address, tax_code, source || 'other', note);
+    `).run(
+      id, 
+      company_name, 
+      contact_name || null, 
+      phone || null, 
+      email || null, 
+      address || null, 
+      tax_code || null, 
+      source || 'other', 
+      note || null
+    );
     
     const newCustomer = await db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
     res.status(201).json(newCustomer);
@@ -123,11 +133,24 @@ router.post('/quotations', async (req, res) => {
         id, quote_number, customer_id, project_name, quantity_desc, 
         subtotal, discount_percent, discount_amount, vat_percent, vat_amount, total_amount,
         payment_terms, delivery_days, valid_until, note, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      id, quote_number, customer_id, project_name, quantity_desc,
-      subtotal || 0, discount_percent || 0, discount_amount || 0, vat_percent || 10, vat_amount || 0, total_amount || 0,
-      payment_terms || '50_50', delivery_days || 30, valid_until, note, 'DRAFT'
+      id, 
+      quote_number, 
+      customer_id, 
+      project_name, 
+      quantity_desc || null,
+      subtotal || 0, 
+      discount_percent || 0, 
+      discount_amount || 0, 
+      vat_percent || 10, 
+      vat_amount || 0, 
+      total_amount || 0,
+      payment_terms || '50_50', 
+      delivery_days || 30, 
+      valid_until || null, 
+      note || null, 
+      'DRAFT'
     );
     
     // Insert items
@@ -138,8 +161,17 @@ router.post('/quotations', async (req, res) => {
             id, quotation_id, group_name, group_order, item_order, description, item_type, quantity, unit, unit_price, total_price
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
-          crypto.randomUUID(), id, item.group_name, item.group_order || 0, item.item_order || 0, 
-          item.description, item.item_type, item.quantity || 1, item.unit, item.unit_price || 0, item.total_price || 0
+          crypto.randomUUID(), 
+          id, 
+          item.group_name || null, 
+          item.group_order || 0, 
+          item.item_order || 0, 
+          item.description, 
+          item.item_type, 
+          item.quantity || 1, 
+          item.unit || null, 
+          item.unit_price || 0, 
+          item.total_price || 0
         );
       }
     }
@@ -164,9 +196,20 @@ router.put('/quotations/:id', async (req, res) => {
         payment_terms = ?, delivery_days = ?, valid_until = ?, note = ?, status = ?
       WHERE id = ?
     `).run(
-      customer_id, project_name, quantity_desc,
-      subtotal, discount_percent, discount_amount, vat_percent, vat_amount, total_amount,
-      payment_terms, delivery_days, valid_until, note, status || 'DRAFT',
+      customer_id, 
+      project_name, 
+      quantity_desc || null,
+      subtotal || 0, 
+      discount_percent || 0, 
+      discount_amount || 0, 
+      vat_percent || 10, 
+      vat_amount || 0, 
+      total_amount || 0,
+      payment_terms || '50_50', 
+      delivery_days || 30, 
+      valid_until || null, 
+      note || null, 
+      status || 'DRAFT',
       req.params.id
     );
     
@@ -179,8 +222,17 @@ router.put('/quotations/:id', async (req, res) => {
             id, quotation_id, group_name, group_order, item_order, description, item_type, quantity, unit, unit_price, total_price
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
-          crypto.randomUUID(), req.params.id, item.group_name, item.group_order || 0, item.item_order || 0, 
-          item.description, item.item_type, item.quantity || 1, item.unit, item.unit_price || 0, item.total_price || 0
+          crypto.randomUUID(), 
+          req.params.id, 
+          item.group_name || null, 
+          item.group_order || 0, 
+          item.item_order || 0, 
+          item.description, 
+          item.item_type, 
+          item.quantity || 1, 
+          item.unit || null, 
+          item.unit_price || 0, 
+          item.total_price || 0
         );
       }
     }
