@@ -157,7 +157,7 @@ export default function ProjectManagement() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{editingProject ? 'Sửa dự án' : 'Thêm dự án mới'}</h2>
@@ -176,13 +176,6 @@ export default function ProjectManagement() {
                     <option value="ACTIVE">Đang hoạt động</option>
                     <option value="ON_HOLD">Tạm dừng</option>
                     <option value="COMPLETED">Hoàn thành</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Địa điểm làm việc</label>
-                  <select className="form-select" value={form.location_type} onChange={e => setForm({...form, location_type: e.target.value})}>
-                    <option value="WORKSHOP">Nhà xưởng</option>
-                    <option value="SITE">Công trường (+20%)</option>
                   </select>
                 </div>
 

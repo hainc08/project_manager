@@ -32,13 +32,19 @@ router.post('/start', authenticate, async (req, res) => {
       });
     }
 
-    // Mandatory Check-in check
-    const activeAttendance = await db.prepare(`
-      SELECT id FROM attendance 
-      WHERE user_id = ? AND check_out IS NULL
-    `).get(req.user.id);
+    // Mandatory Check-in check — chấp nhận cả 2 hệ thống:
+    // 1. Hệ thống cũ: bảng `attendance` (check-in/out đơn giản)
+    // 2. Hệ thống mới: bảng `attendance_records` (check-in theo ca)
+    const [oldAttendance, newAttendance] = await Promise.all([
+      db.prepare(
+        "SELECT id FROM attendance WHERE user_id = ? AND check_out IS NULL"
+      ).get(req.user.id),
+      db.prepare(
+        "SELECT id FROM attendance_records WHERE user_id = ? AND check_in_at IS NOT NULL AND check_out_at IS NULL AND work_date = DATE(NOW())"
+      ).get(req.user.id)
+    ]);
 
-    if (!activeAttendance) {
+    if (!oldAttendance && !newAttendance) {
       return res.status(403).json({ 
         error: 'Yêu cầu vào ca (Check-in) trước khi bắt đầu ghi nhận công việc.' 
       });
@@ -122,10 +128,32 @@ router.post('/stop', authenticate, async (req, res) => {
 
     const end_time = getMySQLDateTime();
     
-    // Get project info for location_type
-    const project = await db.prepare("SELECT location_type FROM projects WHERE id = ?").get(activeTask.project_id);
+    // Get location_type from task (since we moved location to tasks)
+    const taskData = await db.prepare("SELECT location_type FROM tasks WHERE id = ?").get(activeTask.task_id);
+    const locationType = taskData?.location_type || 'WORKSHOP';
+
+    // Fetch dynamic rules from DB
+    const dbRules = await db.prepare("SELECT code, multiplier FROM payroll_multiplier_rules").all();
+    const ruleMap = {};
+    if (dbRules) {
+      dbRules.forEach(r => { ruleMap[r.code] = parseFloat(r.multiplier); });
+    }
+
+    // Fetch holidays
+    const dbHolidays = await db.prepare("SELECT holiday_date FROM holiday_calendar").all();
+    const holidayList = dbHolidays 
+      ? dbHolidays.map(h => (typeof h.holiday_date === 'string' ? h.holiday_date.split('T')[0] : new Date(h.holiday_date).toISOString().split('T')[0])) 
+      : [];
+
+    const dynamicRules = {
+      ot1_multiplier: ruleMap['OT_NORMAL_DAY'] || 1.5,
+      ot2_multiplier: ruleMap['OT_NIGHT'] || 1.5,
+      holiday_multiplier: ruleMap['OT_PUBLIC_HOLIDAY'] || 1.5,
+      site_multiplier: 1.2, // Fixed for now unless added to DB
+      holidays: holidayList
+    };
     
-    const metrics = calculateLaborCost(activeTask.start_time, end_time, activeTask.standard_rate, project.location_type);
+    const metrics = calculateLaborCost(activeTask.start_time, end_time, activeTask.standard_rate, locationType, dynamicRules);
 
     await db.prepare(`
       UPDATE worklogs SET 
@@ -182,12 +210,16 @@ router.get('/active', authenticate, async (req, res) => {
     const db = req.app.get('db');
     const activeTasks = await db.prepare(`
       SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
-             t.title as task_title, pi.name as project_item_name
+             t.title as task_title, pi.name as project_item_name,
+             st.name as active_shift_name
       FROM worklogs w
       JOIN users u ON w.user_id = u.id
       JOIN projects p ON w.project_id = p.id
       LEFT JOIN tasks t ON w.task_id = t.id
       LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      LEFT JOIN attendance_records ar ON ar.user_id = w.user_id AND ar.check_out_at IS NULL
+      LEFT JOIN shift_instances si ON ar.shift_instance_id = si.id
+      LEFT JOIN shift_templates st ON si.shift_template_id = st.id
       WHERE w.status = 'IN_PROGRESS'
       ORDER BY w.start_time DESC
     `).all();
@@ -229,7 +261,7 @@ router.get('/my', authenticate, async (req, res) => {
 router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req, res) => {
   try {
     const db = req.app.get('db');
-    const { start_date, end_date, project_id, user_id } = req.query;
+    const { project_id, project_item_id, user_id } = req.query;
 
     let query = `
       SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
@@ -243,17 +275,13 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
     `;
     const params = [];
 
-    if (start_date) {
-      query += ' AND w.start_time >= ?';
-      params.push(start_date);
-    }
-    if (end_date) {
-      query += ' AND w.start_time <= ?';
-      params.push(end_date + ' 23:59:59');
-    }
     if (project_id) {
       query += ' AND w.project_id = ?';
       params.push(project_id);
+    }
+    if (project_item_id) {
+      query += ' AND t.project_item_id = ?';
+      params.push(project_item_id);
     }
     if (user_id) {
       query += ' AND w.user_id = ?';
@@ -287,17 +315,13 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
     `;
     const itemParams = [];
 
-    if (start_date) {
-      itemSummaryQuery += ' AND w.start_time >= ?';
-      itemParams.push(start_date);
-    }
-    if (end_date) {
-      itemSummaryQuery += ' AND w.start_time <= ?';
-      itemParams.push(end_date + ' 23:59:59');
-    }
     if (project_id) {
       itemSummaryQuery += ' AND w.project_id = ?';
       itemParams.push(project_id);
+    }
+    if (project_item_id) {
+      itemSummaryQuery += ' AND t.project_item_id = ?';
+      itemParams.push(project_item_id);
     }
     if (user_id) {
       itemSummaryQuery += ' AND w.user_id = ?';
@@ -329,31 +353,30 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
 router.get('/export', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req, res) => {
   try {
     const db = req.app.get('db');
-    const { start_date, end_date, project_id } = req.query;
+    const { project_id, project_item_id } = req.query;
 
     let query = `
       SELECT w.start_time as 'Bắt đầu', w.end_time as 'Kết thúc', 
              u.full_name as 'Nhân viên', p.project_name as 'Dự án',
+             COALESCE(pi.name, '') as 'Hạng mục',
              w.task_content as 'Công việc', w.duration_hours as 'Số giờ',
              w.actual_cost as 'Chi phí (VND)', w.actual_revenue as 'Doanh thu (VND)'
       FROM worklogs w
       JOIN users u ON w.user_id = u.id
       JOIN projects p ON w.project_id = p.id
+      LEFT JOIN tasks t ON w.task_id = t.id
+      LEFT JOIN project_items pi ON t.project_item_id = pi.id
       WHERE w.status = 'DONE'
     `;
     const params = [];
 
-    if (start_date) {
-      query += ' AND w.start_time >= ?';
-      params.push(start_date);
-    }
-    if (end_date) {
-      query += ' AND w.start_time <= ?';
-      params.push(end_date + ' 23:59:59');
-    }
     if (project_id) {
       query += ' AND w.project_id = ?';
       params.push(project_id);
+    }
+    if (project_item_id) {
+      query += ' AND t.project_item_id = ?';
+      params.push(project_item_id);
     }
 
     query += ' ORDER BY w.start_time DESC';
@@ -409,8 +432,30 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
 
     // Recalculate if times changed and task is DONE
     if (newEnd && worklog.status === 'DONE') {
-      duration_hours = calcDurationHours(newStart, newEnd);
-      actual_cost = roundMoney(duration_hours * worklog.standard_rate);
+      const taskData = await db.prepare("SELECT location_type FROM tasks WHERE id = ?").get(worklog.task_id);
+      const locationType = taskData?.location_type || 'WORKSHOP';
+
+      // Fetch dynamic rules
+      const dbRules = await db.prepare("SELECT code, multiplier FROM payroll_multiplier_rules").all();
+      const ruleMap = {};
+      if (dbRules) dbRules.forEach(r => { ruleMap[r.code] = parseFloat(r.multiplier); });
+
+      const dbHolidays = await db.prepare("SELECT holiday_date FROM holiday_calendar").all();
+      const holidayList = dbHolidays 
+        ? dbHolidays.map(h => (typeof h.holiday_date === 'string' ? h.holiday_date.split('T')[0] : new Date(h.holiday_date).toISOString().split('T')[0])) 
+        : [];
+
+      const dynamicRules = {
+        ot1_multiplier: ruleMap['OT_NORMAL_DAY'] || 1.5,
+        ot2_multiplier: ruleMap['OT_NIGHT'] || 1.5,
+        holiday_multiplier: ruleMap['OT_PUBLIC_HOLIDAY'] || 1.5,
+        site_multiplier: 1.2,
+        holidays: holidayList
+      };
+
+      const metrics = calculateLaborCost(newStart, newEnd, worklog.standard_rate, locationType, dynamicRules);
+      duration_hours = roundMoney(metrics.standard_hours + metrics.ot_hours);
+      actual_cost = metrics.actual_cost;
       actual_revenue = roundMoney(duration_hours * worklog.billing_rate);
     }
 
@@ -480,20 +525,48 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
     `).all();
     const monthlyData = monthlyDataRaw.reverse();
 
+    // Project status count
+    const projectStatusCount = await db.prepare(
+      "SELECT status, COUNT(*) as count FROM projects GROUP BY status"
+    ).all();
+
     // Labor Cost by project
     const projectData = await db.prepare(`
       SELECT 
+        p.id as project_id,
         p.project_name,
         p.status,
         COALESCE(SUM(w.actual_cost), 0) as cost,
-        COALESCE(SUM(w.actual_revenue), 0) as revenue,
-        COALESCE(SUM(w.duration_hours), 0) as hours
+        COALESCE(SUM(w.duration_hours), 0) as hours,
+        COALESCE(SUM(w.standard_hours), 0) as standard_hours,
+        COALESCE(SUM(w.ot_hours), 0) as ot_hours,
+        COALESCE(SUM(w.ot_hours * u.standard_rate * w.ot_multiplier * w.location_multiplier * w.holiday_multiplier), 0) as ot_cost
       FROM projects p
       LEFT JOIN worklogs w ON p.id = w.project_id AND w.status = 'DONE'
-      WHERE p.status = 'ACTIVE'
+      LEFT JOIN users u ON w.user_id = u.id
       GROUP BY p.id
       ORDER BY p.created_at DESC
     `).all();
+
+    // Item stats by project — join qua tasks để lấy project_item_id
+    const projectItemData = await db.prepare(`
+      SELECT 
+        w.project_id,
+        COALESCE(pi.name, 'Chưa phân loại') as item_name,
+        COALESCE(SUM(w.standard_hours), 0) as standard_hours,
+        COALESCE(SUM(w.ot_hours), 0) as ot_hours,
+        COALESCE(SUM(w.actual_cost), 0) as total_cost
+      FROM worklogs w
+      LEFT JOIN tasks t ON w.task_id = t.id
+      LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      WHERE w.status = 'DONE'
+      GROUP BY w.project_id, pi.id
+    `).all();
+
+    // attach items to projects
+    projectData.forEach(p => {
+      p.items = projectItemData.filter(i => i.project_id === p.project_id);
+    });
 
     res.json({
       active_staff: activeStaff ? activeStaff.count : 0,
@@ -503,7 +576,8 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
         profit: totals ? roundMoney(totals.total_revenue - totals.total_cost) : 0
       },
       monthly_data: monthlyData,
-      project_data: projectData
+      project_data: projectData,
+      project_status_count: projectStatusCount
     });
   } catch (err) {
     logger.error('WORKLOGS', err);

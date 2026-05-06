@@ -54,55 +54,97 @@ function isVietnameseHoliday(dateObj) {
 /**
  * Calculate detailed labor cost based on business rules
  * Rules:
- * - Holiday: 2.0x multiplier for all hours
- * - Site: 1.2x base multiplier
- * - OT (after 17:15): 1.5x multiplier on base
+ * - Holiday, Site, Tăng ca 1, Tăng ca 2: Multipliers can be passed dynamically via `rules`
  */
-function calculateLaborCost(startTime, endTime, hourlyRate, locationType) {
+function calculateLaborCost(startTime, endTime, hourlyRate, locationType, rules = {}) {
   const start = new Date(startTime);
   const end = new Date(endTime);
   const totalDuration = (end - start) / (1000 * 60 * 60);
 
-  if (isVietnameseHoliday(start)) {
-    const cost = roundMoney(totalDuration * hourlyRate * 2.0);
+  // Dynamic Rules with fallbacks
+  const holidayMult = rules.holiday_multiplier || 1.5;
+  const ot1Mult = rules.ot1_multiplier || 1.5;
+  const ot2Mult = rules.ot2_multiplier || 1.5;
+  const siteMult = rules.site_multiplier || 1.2;
+
+  // Note: For a fully dynamic holiday system, `rules.holidays` (array of 'YYYY-MM-DD') can be passed
+  const dateStr = start.toISOString().split('T')[0];
+  const isHoliday = (rules.holidays && rules.holidays.includes(dateStr)) || isVietnameseHoliday(start);
+
+  if (isHoliday) {
+    const cost = roundMoney(totalDuration * hourlyRate * holidayMult);
     return {
       actual_cost: cost,
-      standard_hours: totalDuration,
-      ot_hours: 0,
+      standard_hours: 0,
+      ot_hours: roundMoney(totalDuration),
       location_multiplier: 1.0,
-      ot_multiplier: 1.0,
-      holiday_multiplier: 2.0
+      ot_multiplier: holidayMult,
+      holiday_multiplier: holidayMult
     };
   }
 
-  // Define cutoff for OT (17:15)
-  const otCutoff = new Date(start);
-  otCutoff.setHours(17, 15, 0, 0);
+  // Tăng ca 1: từ 17:15 (1.5x)
+  const ot1Cutoff = new Date(start);
+  ot1Cutoff.setHours(17, 15, 0, 0);
+
+  // Tăng ca 2: từ 22:15 (2.0x — ca đêm)
+  const ot2Cutoff = new Date(start);
+  ot2Cutoff.setHours(22, 15, 0, 0);
+
+  const locMult = locationType === 'SITE' ? siteMult : 1.0;
 
   let stdHours = 0;
-  let otHours = 0;
+  let ot1Hours = 0; // 17:15 - 22:15 (1.5x)
+  let ot2Hours = 0; // sau 22:15 (2.0x)
 
-  if (end <= otCutoff) {
+  // Tính giờ từng phân đoạn
+  const segStart = start.getTime();
+  const segEnd = end.getTime();
+  const cut1 = ot1Cutoff.getTime();
+  const cut2 = ot2Cutoff.getTime();
+
+  // Standard hours: before 17:15
+  if (segEnd <= cut1) {
     stdHours = totalDuration;
-  } else if (start >= otCutoff) {
-    otHours = totalDuration;
+  } else if (segStart >= cut1) {
+    // All OT
+    if (segEnd <= cut2) {
+      ot1Hours = totalDuration;
+    } else if (segStart >= cut2) {
+      ot2Hours = totalDuration;
+    } else {
+      ot1Hours = (cut2 - segStart) / (1000 * 60 * 60);
+      ot2Hours = (segEnd - cut2)  / (1000 * 60 * 60);
+    }
   } else {
-    stdHours = (otCutoff - start) / (1000 * 60 * 60);
-    otHours = (end - otCutoff) / (1000 * 60 * 60);
+    // Spans standard + OT
+    stdHours = (cut1 - segStart) / (1000 * 60 * 60);
+    if (segEnd <= cut2) {
+      ot1Hours = (segEnd - cut1) / (1000 * 60 * 60);
+    } else {
+      ot1Hours = (cut2 - cut1) / (1000 * 60 * 60);
+      ot2Hours = (segEnd - cut2) / (1000 * 60 * 60);
+    }
   }
 
-  const locMult = locationType === 'SITE' ? 1.2 : 1.0;
-  const otMult = 1.5;
-
   const costStd = stdHours * hourlyRate * locMult;
-  const costOt = otHours * hourlyRate * locMult * otMult;
+  const costOt1 = ot1Hours * hourlyRate * locMult * ot1Mult;
+  const costOt2 = ot2Hours * hourlyRate * locMult * ot2Mult;
+
+  const totalOtHours = roundMoney(ot1Hours + ot2Hours);
+  // Effective OT multiplier (weighted average for storage)
+  const effectiveOtMult = totalOtHours > 0
+    ? roundMoney((costOt1 + costOt2) / (totalOtHours * hourlyRate * locMult))
+    : ot1Mult;
 
   return {
-    actual_cost: roundMoney(costStd + costOt),
+    actual_cost: roundMoney(costStd + costOt1 + costOt2),
     standard_hours: roundMoney(stdHours),
-    ot_hours: roundMoney(otHours),
+    ot_hours: totalOtHours,
+    ot1_hours: roundMoney(ot1Hours),
+    ot2_hours: roundMoney(ot2Hours),
     location_multiplier: locMult,
-    ot_multiplier: otMult,
+    ot_multiplier: effectiveOtMult,
     holiday_multiplier: 1.0
   };
 }

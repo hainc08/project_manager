@@ -12,24 +12,8 @@ export default function FinancialReport() {
   const [error, setError] = useState(null);
   const [users, setUsers] = useState([]);
 
-  // Filters - Mặc định Từ ngày (4 ngày trước) và Đến ngày (hôm nay) theo giờ địa phương
-  const getLocalDateStr = (d) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const now = new Date();
-  const defaultEnd = getLocalDateStr(now);
-  
-  const date4DaysAgo = new Date();
-  date4DaysAgo.setDate(now.getDate() - 4);
-  const defaultStart = getLocalDateStr(date4DaysAgo);
-
-  const [startDate, setStartDate] = useState(defaultStart);
-  const [endDate, setEndDate] = useState(defaultEnd);
   const [projectId, setProjectId] = useState('');
+  const [projectItemId, setProjectItemId] = useState('');
   const [userId, setUserId] = useState('');
 
   useEffect(() => {
@@ -61,9 +45,8 @@ export default function FinancialReport() {
     setError(null);
     try {
       const params = {};
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
       if (projectId) params.project_id = projectId;
+      if (projectItemId) params.project_item_id = projectItemId;
       if (userId) params.user_id = userId;
 
       const res = await api.get('/worklogs/report', { params });
@@ -87,9 +70,8 @@ export default function FinancialReport() {
     setExporting(true);
     try {
       const params = {};
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
       if (projectId) params.project_id = projectId;
+      if (projectItemId) params.project_item_id = projectItemId;
       if (userId) params.user_id = userId;
 
       const res = await api.get('/worklogs/export', {
@@ -125,20 +107,21 @@ export default function FinancialReport() {
         <div className="card mb-lg">
           <form onSubmit={handleFilter}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-                <label className="form-label">Từ ngày</label>
-                <input type="date" className="form-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-                <label className="form-label">Đến ngày</label>
-                <input type="date" className="form-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
-              </div>
               <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '180px' }}>
                 <label className="form-label">Dự án</label>
-                <select className="form-select" value={projectId} onChange={e => setProjectId(e.target.value)}>
+                <select className="form-select" value={projectId} onChange={e => { setProjectId(e.target.value); setProjectItemId(''); }}>
                   <option value="">Tất cả dự án</option>
                   {projects.map(p => (
                     <option key={p.id} value={p.id}>{p.project_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '180px' }}>
+                <label className="form-label">Hạng mục</label>
+                <select className="form-select" value={projectItemId} onChange={e => setProjectItemId(e.target.value)} disabled={!projectId}>
+                  <option value="">Tất cả hạng mục</option>
+                  {projectId && projects.find(p => p.id === projectId)?.items?.map(item => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>
               </div>

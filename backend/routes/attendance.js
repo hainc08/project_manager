@@ -122,27 +122,31 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
     const { start_date, end_date, user_id } = req.query;
 
     let query = `
-      SELECT a.*, u.full_name
-      FROM attendance a
-      JOIN users u ON a.user_id = u.id
+      SELECT ar.id, ar.user_id, ar.check_in_at as check_in, ar.check_out_at as check_out, 
+             ar.total_work_minutes / 60.0 as duration_hours, ar.late_minutes, ar.overtime_minutes,
+             ar.status, u.full_name, st.name as shift_name
+      FROM attendance_records ar
+      JOIN users u ON ar.user_id = u.id
+      LEFT JOIN shift_instances si ON ar.shift_instance_id = si.id
+      LEFT JOIN shift_templates st ON si.shift_template_id = st.id
       WHERE 1=1
     `;
     const params = [];
 
     if (start_date) {
-      query += ' AND a.check_in >= ?';
+      query += ' AND ar.check_in_at >= ?';
       params.push(start_date);
     }
     if (end_date) {
-      query += ' AND a.check_in <= ?';
+      query += ' AND ar.check_in_at <= ?';
       params.push(end_date + ' 23:59:59');
     }
     if (user_id) {
-      query += ' AND a.user_id = ?';
+      query += ' AND ar.user_id = ?';
       params.push(user_id);
     }
 
-    query += ' ORDER BY a.check_in DESC';
+    query += ' ORDER BY ar.check_in_at DESC';
 
     const report = await db.prepare(query).all(...params);
     res.json(report);

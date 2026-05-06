@@ -62,7 +62,7 @@ export default function ShiftTemplateModal({ onClose, onSaved, editData }) {
   const colorMap = { amber:'#f5a623', blue:'#4f8ef7', purple:'#a78bfa', green:'#22c87a', red:'#f0506e' };
 
   return (
-    <div className="sm__modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="sm__modal-overlay">
       <div className="sm__modal">
         <div className="sm__modal-header">
           <div className="sm__modal-title">{isEdit ? '✏️ Sửa ca làm việc' : '➕ Thêm ca mới'}</div>

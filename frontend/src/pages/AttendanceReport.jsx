@@ -15,12 +15,13 @@ export default function AttendanceReport() {
     return `${year}-${month}-${day}`;
   };
 
+  // Default 6 days (5 days ago + today)
   const now = new Date();
   const defaultEnd = getLocalDateStr(now);
   
-  const date4DaysAgo = new Date();
-  date4DaysAgo.setDate(now.getDate() - 4);
-  const defaultStart = getLocalDateStr(date4DaysAgo);
+  const date5DaysAgo = new Date();
+  date5DaysAgo.setDate(now.getDate() - 5);
+  const defaultStart = getLocalDateStr(date5DaysAgo);
 
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(defaultEnd);
@@ -65,6 +66,16 @@ export default function AttendanceReport() {
   // Calculate total hours in the current report
   const totalHours = report.reduce((sum, item) => sum + (item.duration_hours || 0), 0);
 
+  // Calculate summary per user
+  const userSummary = Object.values(report.reduce((acc, item) => {
+    if (!acc[item.user_id]) {
+      acc[item.user_id] = { user_id: item.user_id, full_name: item.full_name, total_shifts: 0, total_hours: 0 };
+    }
+    acc[item.user_id].total_shifts += 1;
+    acc[item.user_id].total_hours += item.duration_hours || 0;
+    return acc;
+  }, {})).sort((a, b) => b.total_shifts - a.total_shifts);
+
   return (
     <>
       <div className="page-header">
@@ -108,10 +119,49 @@ export default function AttendanceReport() {
           </div>
           <div className="stat-card">
             <div className="stat-card-icon">📅</div>
-            <div className="stat-card-label">Số lượt chấm công</div>
+            <div className="stat-card-label">Tổng lượt chấm công</div>
             <div className="stat-card-value">{report.length}</div>
           </div>
         </div>
+
+        {/* User Summary Table */}
+        {!loading && userSummary.length > 0 && (
+          <div className="card mb-lg">
+            <div className="card-header">
+              <div className="card-title">Tổng hợp theo nhân viên</div>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Nhân viên</th>
+                    <th className="text-right">Tổng số ca</th>
+                    <th className="text-right">Số tuần làm việc (6 ca/tuần)</th>
+                    <th className="text-right">Tổng giờ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userSummary.map(user => {
+                    const weeks = Math.floor(user.total_shifts / 6);
+                    const extraShifts = user.total_shifts % 6;
+                    return (
+                      <tr key={user.user_id}>
+                        <td><strong>{user.full_name}</strong></td>
+                        <td className="text-right font-mono">{user.total_shifts}</td>
+                        <td className="text-right font-mono text-primary">
+                          {weeks > 0 ? `${weeks} tuần` : ''} 
+                          {weeks > 0 && extraShifts > 0 ? ' + ' : ''}
+                          {extraShifts > 0 ? `${extraShifts} ca` : ''}
+                        </td>
+                        <td className="text-right font-mono">{formatNumber(user.total_hours)}h</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Data Table */}
         {loading ? (
@@ -131,6 +181,7 @@ export default function AttendanceReport() {
                 <thead>
                   <tr>
                     <th>Nhân viên</th>
+                    <th>Ca làm việc</th>
                     <th>Vào ca (Check-in)</th>
                     <th>Tan ca (Check-out)</th>
                     <th className="text-right">Tổng giờ</th>
@@ -141,6 +192,13 @@ export default function AttendanceReport() {
                   {report.map(item => (
                     <tr key={item.id}>
                       <td><strong>{item.full_name}</strong></td>
+                      <td>
+                        {item.shift_name ? (
+                          <span className="badge" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                            {item.shift_name}
+                          </span>
+                        ) : '---'}
+                      </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(item.check_in)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {item.check_out ? formatDateTime(item.check_out) : <span className="badge badge-active">Đang làm việc</span>}
@@ -149,9 +207,26 @@ export default function AttendanceReport() {
                         {item.duration_hours ? formatDuration(item.duration_hours) : '-'}
                       </td>
                       <td>
-                        <span className={`badge ${item.check_out ? 'badge-done' : 'badge-active'}`}>
-                          {item.check_out ? 'Đã hoàn thành' : 'Chưa tan ca'}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className={`badge ${item.check_out ? 'badge-done' : 'badge-active'}`} style={{ width: 'fit-content' }}>
+                            {item.check_out ? 'Đã hoàn thành' : 'Chưa tan ca'}
+                          </span>
+                          {item.status === 'LATE' && (
+                            <span className="badge badge-danger" style={{ width: 'fit-content', fontSize: '0.7rem' }}>
+                              🔴 Đi muộn {item.late_minutes}p
+                            </span>
+                          )}
+                          {item.status === 'ON_TIME' && (
+                            <span className="badge badge-success" style={{ width: 'fit-content', fontSize: '0.7rem' }}>
+                              🟢 Đúng giờ
+                            </span>
+                          )}
+                          {item.overtime_minutes > 0 && (
+                            <span className="badge badge-warning" style={{ width: 'fit-content', fontSize: '0.7rem' }}>
+                              🟡 Tăng ca {item.overtime_minutes}p
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

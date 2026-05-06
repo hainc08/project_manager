@@ -22,7 +22,7 @@ export default function UserManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({
-    username: '', password: '', full_name: '', role: 'STAFF',
+    username: '', password: '', full_name: '', job_title: 'Thợ phụ',
     contract_type: 'FULLTIME', standard_rate: ''
   });
   const [error, setError] = useState('');
@@ -42,7 +42,7 @@ export default function UserManagement() {
 
   const openCreateModal = () => {
     setEditingUser(null);
-    setForm({ username: '', password: '', full_name: '', role: 'STAFF', contract_type: 'FULLTIME', standard_rate: '', standard_rate_display: '' });
+    setForm({ username: '', password: '', full_name: '', job_title: 'Thợ phụ', contract_type: 'FULLTIME', standard_rate: '', standard_rate_display: '' });
     setError('');
     setShowModal(true);
   };
@@ -53,7 +53,7 @@ export default function UserManagement() {
       username: user.username,
       password: '',
       full_name: user.full_name,
-      role: user.role,
+      job_title: user.job_title || 'Thợ phụ',
       contract_type: user.contract_type,
       standard_rate: user.standard_rate,
       standard_rate_display: formatMoneyDisplay(user.standard_rate)
@@ -79,7 +79,7 @@ export default function UserManagement() {
       if (editingUser) {
         await api.put(`/users/${editingUser.id}`, {
           full_name: form.full_name,
-          role: form.role,
+          job_title: form.job_title,
           contract_type: form.contract_type,
           standard_rate: Number(form.standard_rate)
         });
@@ -154,7 +154,7 @@ export default function UserManagement() {
               <thead>
                 <tr>
                   <th>Nhân viên</th>
-                  <th>Vai trò</th>
+                  <th>Chức danh</th>
                   <th>Hợp đồng</th>
                   <th className="text-right">Chi phí/giờ (Lương)</th>
                   <th className="text-right">Thao tác</th>
@@ -168,8 +168,8 @@ export default function UserManagement() {
                       <div className="text-muted" style={{ fontSize: '0.8rem' }}>@{user.username}</div>
                     </td>
                     <td>
-                      <span className={`badge ${user.role === 'ADMIN' ? 'badge-danger' : user.role === 'ACCOUNTANT' ? 'badge-info' : 'badge-success'}`}>
-                        {getRoleLabel(user.role)}
+                      <span className={`badge ${user.role === 'ADMIN' ? 'badge-danger' : 'badge-info'}`}>
+                        {user.job_title || 'Chưa có'}
                       </span>
                     </td>
                     <td><span className="text-secondary">{getContractLabel(user.contract_type)}</span></td>
@@ -193,7 +193,7 @@ export default function UserManagement() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{editingUser ? 'Sửa nhân viên' : 'Thêm nhân viên mới'}</h2>
@@ -223,11 +223,14 @@ export default function UserManagement() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Vai trò</label>
-                    <select className="form-select" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
-                      <option value="STAFF">Nhân viên</option>
-                      <option value="ACCOUNTANT">Kế toán</option>
-                      <option value="ADMIN">Quản trị viên</option>
+                    <label className="form-label">Chức danh</label>
+                    <select className="form-select" value={form.job_title} onChange={e => setForm({...form, job_title: e.target.value})}>
+                      <option value="Quản đốc">Quản đốc</option>
+                      <option value="Chỉ huy công trường">Chỉ huy công trường</option>
+                      <option value="Thợ hàn">Thợ hàn</option>
+                      <option value="Thợ máy">Thợ máy</option>
+                      <option value="Thợ phụ">Thợ phụ</option>
+                      <option value="Kế toán">Kế toán</option>
                     </select>
                   </div>
                   <div className="form-group">

@@ -120,7 +120,7 @@ export default function ProjectItemManagement() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{editingItem ? 'Sửa hạng mục' : 'Thêm hạng mục mới'}</h2>

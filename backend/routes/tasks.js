@@ -14,11 +14,12 @@ const logger = require('../utils/logger');
     const { project_id, assigned_to, status } = req.query;
     
     let query = `
-      SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name
+      SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name, st.name as target_shift_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
       JOIN users u ON t.assigned_to = u.id
       LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      LEFT JOIN shift_templates st ON t.target_shift_id = st.id
       WHERE 1=1
     `;
     const params = [];
@@ -54,10 +55,11 @@ router.get('/my', authenticate, async (req, res) => {
   try {
     const db = req.app.get('db');
     const tasks = await db.prepare(`
-      SELECT t.*, p.project_name, pi.name as project_item_name
+      SELECT t.*, p.project_name, pi.name as project_item_name, st.name as target_shift_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
       LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      LEFT JOIN shift_templates st ON t.target_shift_id = st.id
       WHERE t.assigned_to = ? AND t.status != 'DONE' AND t.status != 'CANCELLED'
       ORDER BY CASE WHEN t.status = 'DOING' THEN 0 ELSE 1 END, t.created_at DESC
     `).all(req.user.id);
@@ -75,28 +77,46 @@ router.get('/my', authenticate, async (req, res) => {
 router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const db = req.app.get('db');
-    const { project_id, project_item_id, assigned_to, title, description } = req.body;
+    const { project_id, project_item_id, assignee_ids, title, description, location_type, target_shift_id } = req.body;
 
-    if (!project_id || !assigned_to || !title) {
-      return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin: Dự án, Người thực hiện, Tiêu đề' });
+    if (!project_id || !assignee_ids || !Array.isArray(assignee_ids) || assignee_ids.length === 0) {
+      return res.status(400).json({ error: 'Vui lòng chọn Dự án và ít nhất 1 Nhân viên' });
     }
 
-    const id = generateId();
-    await db.prepare(`
-      INSERT INTO tasks (id, project_id, project_item_id, assigned_to, title, description, status)
-      VALUES (?, ?, ?, ?, ?, ?, 'TODO')
-    `).run(id, project_id, project_item_id || null, assigned_to, title, description || '');
-
-    const task = await db.prepare(`
-      SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name
-      FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      JOIN users u ON t.assigned_to = u.id
-      LEFT JOIN project_items pi ON t.project_item_id = pi.id
-      WHERE t.id = ?
-    `).get(id);
+    const project = await db.prepare('SELECT project_name FROM projects WHERE id = ?').get(project_id);
+    if (!project) return res.status(400).json({ error: 'Dự án không tồn tại' });
     
-    res.status(201).json(task);
+    let item_name = '';
+    if (project_item_id) {
+      const item = await db.prepare('SELECT name FROM project_items WHERE id = ?').get(project_item_id);
+      if (item) item_name = item.name;
+    }
+    
+    // Auto generate title if not provided
+    const generatedTitle = title || `${project.project_name}${item_name ? ' - ' + item_name : ''}`;
+
+    const tasks = [];
+    for (const assigned_to of assignee_ids) {
+      const id = generateId();
+      await db.prepare(`
+        INSERT INTO tasks (id, project_id, project_item_id, assigned_to, title, description, status, location_type, target_shift_id)
+        VALUES (?, ?, ?, ?, ?, ?, 'TODO', COALESCE(?, 'WORKSHOP'), ?)
+      `).run(id, project_id, project_item_id || null, assigned_to, generatedTitle, description || '', location_type, target_shift_id || null);
+
+      const task = await db.prepare(`
+        SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name, st.name as target_shift_name
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        JOIN users u ON t.assigned_to = u.id
+        LEFT JOIN project_items pi ON t.project_item_id = pi.id
+        LEFT JOIN shift_templates st ON t.target_shift_id = st.id
+        WHERE t.id = ?
+      `).get(id);
+      
+      tasks.push(task);
+    }
+    
+    res.status(201).json(tasks);
   } catch (err) {
     logger.error('TASKS', err);
     res.status(500).json({ error: 'Lỗi server' });
@@ -111,7 +131,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const db = req.app.get('db');
     const { id } = req.params;
-    const { project_id, project_item_id, assigned_to, title, description, status } = req.body;
+    const { project_id, project_item_id, assigned_to, title, description, status, location_type, target_shift_id } = req.body;
 
     const task = await db.prepare('SELECT id FROM tasks WHERE id = ?').get(id);
     if (!task) return res.status(404).json({ error: 'Không tìm thấy công việc' });
@@ -124,6 +144,8 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
           title = COALESCE(?, title), 
           description = COALESCE(?, description),
           status = COALESCE(?, status),
+          location_type = COALESCE(?, location_type),
+          target_shift_id = COALESCE(?, target_shift_id),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
@@ -133,15 +155,18 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
       title ?? null, 
       description ?? null, 
       status ?? null, 
+      location_type ?? null,
+      target_shift_id ?? null,
       id
     );
 
     const updated = await db.prepare(`
-      SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name
+      SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name, st.name as target_shift_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
       JOIN users u ON t.assigned_to = u.id
       LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      LEFT JOIN shift_templates st ON t.target_shift_id = st.id
       WHERE t.id = ?
     `).get(id);
     

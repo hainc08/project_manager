@@ -95,6 +95,43 @@ async function startServer() {
     server.listen(PORT, () => {
       logger.info('SYSTEM', `🚀 Server ready on port ${PORT}`);
     });
+
+    // Auto-checkout cron job
+    setInterval(async () => {
+      try {
+        const autoCheckOutRecords = await db.prepare(`
+          SELECT ar.id, ar.check_in_at, si.end_at, st.break_minutes
+          FROM attendance_records ar
+          JOIN shift_instances si ON ar.shift_instance_id = si.id
+          JOIN shift_templates st ON si.shift_template_id = st.id
+          WHERE ar.check_in_at IS NOT NULL 
+            AND ar.check_out_at IS NULL
+            AND NOW() >= si.end_at
+        `).all();
+
+        for (const record of autoCheckOutRecords) {
+          const checkIn   = new Date(record.check_in_at);
+          const shiftEnd  = new Date(record.end_at);
+          const breakMin  = record.break_minutes || 0;
+
+          const totalMin   = Math.max(0, Math.floor((shiftEnd - checkIn) / 60000) - breakMin);
+          const regularMin = totalMin;
+          const otMin      = 0;
+
+          await db.prepare(`
+            UPDATE attendance_records
+            SET check_out_at = ?, total_work_minutes = ?, regular_minutes = ?, overtime_minutes = ?,
+                payroll_status = 'DRAFT'
+            WHERE id = ?
+          `).run(record.end_at, totalMin, regularMin, otMin, record.id);
+          
+          logger.info('AUTO_CHECKOUT', `Auto checked out record ${record.id} at shift end ${record.end_at}`);
+        }
+      } catch (e) {
+        logger.error('CRON', 'Auto checkout failed: ' + e.message);
+      }
+    }, 60 * 1000); // runs every 1 minute
+
   } catch (err) {
     logger.error('SYSTEM', `❌ Failed to start server: ${err.message}`);
     process.exit(1);

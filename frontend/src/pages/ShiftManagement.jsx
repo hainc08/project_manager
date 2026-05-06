@@ -61,6 +61,17 @@ export default function ShiftManagement() {
     setTemplates(res.data);
   }, []);
 
+  const handleDeleteTemplate = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa ca này?')) return;
+    try {
+      await axios.delete(`${API}/shift-management/templates/${id}`);
+      fetchTemplates();
+      if (tab === 'Lịch tuần') fetchDay(selectedDate);
+    } catch (err) {
+      alert('Lỗi khi xóa ca: ' + err.message);
+    }
+  };
+
   useEffect(() => { fetchWeek(); }, [fetchWeek]);
   useEffect(() => { fetchDay(selectedDate); }, [selectedDate, fetchDay]);
   useEffect(() => { if (selectedShift) fetchAtt(selectedShift.id); else setAttendance([]); }, [selectedShift, fetchAtt]);
@@ -228,8 +239,12 @@ export default function ShiftManagement() {
                       <div className={`sm__shift-multiplier-val sm__shift-multiplier-val--${slug(t.code)}`}>{t.base_multiplier}x</div>
                     </div>
                     {isAdmin && (
-                      <button className="sm__icon-btn" title="Sửa ca"
-                        onClick={() => { setEditTemplate(t); setShowModal(true); }}>✏</button>
+                      <>
+                        <button className="sm__icon-btn" title="Sửa ca"
+                          onClick={() => { setEditTemplate(t); setShowModal(true); }}>✏</button>
+                        <button className="sm__icon-btn" title="Xóa ca" style={{ color: 'var(--sm-red)' }}
+                          onClick={() => handleDeleteTemplate(t.id)}>🗑</button>
+                      </>
                     )}
                   </div>
                 </div>

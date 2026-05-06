@@ -13,7 +13,7 @@ router.get('/', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const db = req.app.get('db');
     const users = await db.prepare(
-      'SELECT id, username, full_name, role, contract_type, standard_rate, billing_rate, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, username, full_name, role, job_title, contract_type, standard_rate, billing_rate, created_at FROM users ORDER BY created_at DESC'
     ).all();
     res.json(users);
   } catch (err) {
@@ -29,9 +29,9 @@ router.get('/', authenticate, authorize('ADMIN'), async (req, res) => {
 router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const db = req.app.get('db');
-    const { username, password, full_name, role, contract_type, standard_rate, billing_rate } = req.body;
+    const { username, password, full_name, job_title, contract_type, standard_rate, billing_rate } = req.body;
 
-    if (!username || !password || !full_name || !role) {
+    if (!username || !password || !full_name || !job_title) {
       return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin' });
     }
 
@@ -43,14 +43,18 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
 
     const id = generateId();
     const password_hash = bcrypt.hashSync(password, 10);
+    
+    let role = 'STAFF';
+    if (job_title === 'Quản đốc') role = 'ADMIN';
+    if (job_title === 'Kế toán') role = 'ACCOUNTANT';
 
     await db.prepare(`
-      INSERT INTO users (id, username, password_hash, full_name, role, contract_type, standard_rate, billing_rate)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, username, password_hash, full_name, role, contract_type || 'FULLTIME', standard_rate || 0, billing_rate || 0);
+      INSERT INTO users (id, username, password_hash, full_name, role, job_title, contract_type, standard_rate, billing_rate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, username, password_hash, full_name, role, job_title, contract_type || 'FULLTIME', standard_rate || 0, billing_rate || 0);
 
     const user = await db.prepare(
-      'SELECT id, username, full_name, role, contract_type, standard_rate, billing_rate, created_at FROM users WHERE id = ?'
+      'SELECT id, username, full_name, role, job_title, contract_type, standard_rate, billing_rate, created_at FROM users WHERE id = ?'
     ).get(id);
 
     res.status(201).json(user);
@@ -68,20 +72,28 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const db = req.app.get('db');
     const { id } = req.params;
-    const { full_name, role, contract_type, standard_rate, billing_rate } = req.body;
+    const { full_name, job_title, contract_type, standard_rate, billing_rate } = req.body;
 
     const user = await db.prepare('SELECT id FROM users WHERE id = ?').get(id);
     if (!user) {
       return res.status(404).json({ error: 'User không tồn tại' });
     }
 
+    let role = user.role;
+    if (job_title) {
+      role = 'STAFF';
+      if (job_title === 'Quản đốc') role = 'ADMIN';
+      if (job_title === 'Kế toán') role = 'ACCOUNTANT';
+    }
+
     await db.prepare(`
-      UPDATE users SET full_name = COALESCE(?, full_name), role = COALESCE(?, role),
+      UPDATE users SET full_name = COALESCE(?, full_name), role = COALESCE(?, role), job_title = COALESCE(?, job_title),
       contract_type = COALESCE(?, contract_type), standard_rate = COALESCE(?, standard_rate),
       billing_rate = COALESCE(?, billing_rate) WHERE id = ?
     `).run(
       full_name || null, 
       role || null, 
+      job_title || null,
       contract_type || null, 
       standard_rate ?? null, 
       billing_rate ?? null, 
@@ -89,7 +101,7 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
     );
 
     const updated = await db.prepare(
-      'SELECT id, username, full_name, role, contract_type, standard_rate, billing_rate, created_at FROM users WHERE id = ?'
+      'SELECT id, username, full_name, role, job_title, contract_type, standard_rate, billing_rate, created_at FROM users WHERE id = ?'
     ).get(id);
 
     res.json(updated);

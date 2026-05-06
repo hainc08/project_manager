@@ -84,11 +84,15 @@ export default function Dashboard() {
             <div className="stat-card-label">Tổng giờ làm</div>
             <div className="stat-card-value">{formatNumber(data?.totals?.total_hours)} giờ</div>
           </div>
-          <div className="stat-card" onClick={() => navigate('/tasks')} style={{ cursor: 'pointer' }}>
-            <div className="stat-card-icon tasks">📋</div>
-            <div className="stat-card-label">Tổng nhiệm vụ</div>
+          <div className="stat-card" onClick={() => navigate('/projects')} style={{ cursor: 'pointer' }}>
+            <div className="stat-card-icon tasks">📁</div>
+            <div className="stat-card-label">Dự án hoạt động</div>
             <div className="stat-card-value">
-              {data?.tasks_stats?.doing_tasks || 0} / {data?.tasks_stats?.uncompleted_tasks || 0}
+              {data?.project_status_count?.find(s => s.status === 'ACTIVE')?.count || 0}
+            </div>
+            <div style={{ fontSize: '0.75rem', marginTop: '4px', color: 'var(--text-muted)' }}>
+              Đã xong: {data?.project_status_count?.find(s => s.status === 'COMPLETED')?.count || 0} | 
+              Tạm dừng: {data?.project_status_count?.find(s => s.status === 'ON_HOLD')?.count || 0}
             </div>
           </div>
         </div>
@@ -158,17 +162,38 @@ export default function Dashboard() {
                 <thead>
                   <tr>
                     <th>Dự án</th>
-                    <th className="text-right">Số giờ</th>
-                    <th className="text-right">Chi phí lương</th>
+                    <th>Trạng thái</th>
+                    <th className="text-right">Giờ tiêu chuẩn</th>
+                    <th className="text-right">Giờ OT</th>
+                    <th className="text-right">Chi phí OT</th>
+                    <th className="text-right">Tổng chi phí</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.project_data.map((p, i) => (
-                    <tr key={i}>
-                      <td><strong>{p.project_name}</strong></td>
-                      <td className="text-right font-mono">{formatDuration(p.hours)}</td>
-                      <td className="text-right font-mono text-danger" style={{ fontWeight: 600 }}>{formatCurrency(p.cost)}</td>
-                    </tr>
+                    <>
+                      <tr key={`p_${i}`} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                        <td><strong>{p.project_name}</strong></td>
+                        <td>
+                          {p.status === 'ACTIVE' && <span className="badge badge-success">Đang làm</span>}
+                          {p.status === 'COMPLETED' && <span className="badge badge-purple">Hoàn thành</span>}
+                          {p.status === 'ON_HOLD' && <span className="badge badge-warn">Tạm dừng</span>}
+                        </td>
+                        <td className="text-right font-mono">{formatNumber(p.standard_hours)}h</td>
+                        <td className="text-right font-mono">{formatNumber(p.ot_hours)}h</td>
+                        <td className="text-right font-mono text-warn">{formatCurrency(p.ot_cost)}</td>
+                        <td className="text-right font-mono text-danger" style={{ fontWeight: 600 }}>{formatCurrency(p.cost)}</td>
+                      </tr>
+                      {p.items && p.items.length > 0 && p.items.map((item, j) => (
+                        <tr key={`p_${i}_item_${j}`} style={{ fontSize: '0.85rem' }}>
+                          <td colSpan="2" style={{ paddingLeft: '32px', color: 'var(--text-muted)' }}>
+                            └ Hạng mục: {item.item_name}
+                          </td>
+                          <td className="text-right font-mono text-muted">{formatNumber(item.standard_hours)}h</td>
+                          <td colSpan="3"></td>
+                        </tr>
+                      ))}
+                    </>
                   ))}
                 </tbody>
               </table>

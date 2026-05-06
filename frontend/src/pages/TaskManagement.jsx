@@ -6,6 +6,7 @@ export default function TaskManagement() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
+  const [shiftTemplates, setShiftTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -19,8 +20,10 @@ export default function TaskManagement() {
   const [form, setForm] = useState({
     project_id: '',
     project_item_id: '',
+    assignee_ids: [],
     assigned_to: '',
-    title: '',
+    location_type: 'WORKSHOP',
+    target_shift_id: '',
     description: '',
     status: 'TODO'
   });
@@ -35,13 +38,15 @@ export default function TaskManagement() {
 
   const fetchInitialData = async () => {
     try {
-      const [projRes, userRes] = await Promise.all([
+      const [projRes, userRes, shiftRes] = await Promise.all([
         api.get('/projects'),
-        api.get('/users')
+        api.get('/users'),
+        api.get('/shift-management/templates')
       ]);
       // Store all projects including their items
       setProjects(projRes.data.filter(p => p.status === 'ACTIVE'));
       setUsers(userRes.data.filter(u => u.role === 'STAFF'));
+      setShiftTemplates(shiftRes.data);
       fetchTasks();
     } catch (err) {
       console.error('Failed to fetch initial data', err);
@@ -70,8 +75,10 @@ export default function TaskManagement() {
     setForm({
       project_id: '',
       project_item_id: '',
+      assignee_ids: [],
       assigned_to: '',
-      title: '',
+      location_type: 'WORKSHOP',
+      target_shift_id: '',
       description: '',
       status: 'TODO'
     });
@@ -84,8 +91,10 @@ export default function TaskManagement() {
     setForm({
       project_id: task.project_id,
       project_item_id: task.project_item_id || '',
+      assignee_ids: [],
       assigned_to: task.assigned_to,
-      title: task.title,
+      location_type: task.location_type || 'WORKSHOP',
+      target_shift_id: task.target_shift_id || '',
       description: task.description,
       status: task.status
     });
@@ -96,6 +105,12 @@ export default function TaskManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Form validation manually for assignee_ids on create
+    if (!editingTask && form.assignee_ids.length === 0) {
+      setError('Vui lòng chọn ít nhất 1 nhân viên thực hiện');
+      return;
+    }
 
     try {
       if (editingTask) {
@@ -186,6 +201,7 @@ export default function TaskManagement() {
                     <th>Công việc</th>
                     <th>Hạng mục</th>
                     <th>Dự án</th>
+                    <th>Ca dự kiến</th>
                     <th>Nhân viên</th>
                     <th>Trạng thái</th>
                     <th>Ngày giao</th>
@@ -205,6 +221,13 @@ export default function TaskManagement() {
                         ) : '---'}
                       </td>
                       <td data-label="Dự án">{task.project_name}</td>
+                      <td data-label="Ca dự kiến">
+                        {task.target_shift_name ? (
+                          <span className="badge" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                            {task.target_shift_name}
+                          </span>
+                        ) : '---'}
+                      </td>
                       <td data-label="Nhân viên">{task.assignee_name}</td>
                       <td data-label="Trạng thái">
                         <span className={`badge ${getStatusBadgeClass(task.status)}`}>
@@ -232,7 +255,7 @@ export default function TaskManagement() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{editingTask ? 'Sửa công việc' : 'Giao việc mới'}</h2>
@@ -242,23 +265,6 @@ export default function TaskManagement() {
               <div className="modal-body">
                 {error && <div className="login-error">{error}</div>}
                 
-                <div className="form-group">
-                  <label className="form-label">Tiêu đề công việc</label>
-                  <input className="form-input" required value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Nhập tiêu đề công việc" />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Mô tả chi tiết</label>
-                  <textarea 
-                    className="form-input" 
-                    rows={3} 
-                    value={form.description} 
-                    onChange={e => setForm({...form, description: e.target.value})} 
-                    placeholder="Mô tả yêu cầu..."
-                    style={{ resize: 'vertical' }}
-                  />
-                </div>
-
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Dự án</label>
@@ -294,10 +300,55 @@ export default function TaskManagement() {
 
                 <div className="form-group">
                   <label className="form-label">Nhân viên thực hiện</label>
-                  <select className="form-select" required value={form.assigned_to} onChange={e => setForm({...form, assigned_to: e.target.value})}>
-                    <option value="">-- Chọn nhân viên --</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                  </select>
+                  {editingTask ? (
+                    <select className="form-select" required value={form.assigned_to} onChange={e => setForm({...form, assigned_to: e.target.value})}>
+                      <option value="">-- Chọn nhân viên --</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                    </select>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '150px', overflowY: 'auto', padding: '8px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+                      {users.map(u => (
+                        <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={form.assignee_ids.includes(u.id)} onChange={(e) => {
+                            const ids = e.target.checked 
+                              ? [...form.assignee_ids, u.id] 
+                              : form.assignee_ids.filter(id => id !== u.id);
+                            setForm({...form, assignee_ids: ids});
+                          }} />
+                          {u.full_name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Ca làm việc dự kiến</label>
+                    <select className="form-select" value={form.target_shift_id} onChange={e => setForm({...form, target_shift_id: e.target.value})}>
+                      <option value="">-- Chọn ca --</option>
+                      {shiftTemplates.map(s => <option key={s.id} value={s.id}>{s.name} ({s.start_time.slice(0,5)} - {s.end_time.slice(0,5)})</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Địa điểm làm việc</label>
+                    <select className="form-select" value={form.location_type} onChange={e => setForm({...form, location_type: e.target.value})}>
+                      <option value="WORKSHOP">Xưởng</option>
+                      <option value="SITE">Công trường</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Mô tả chi tiết</label>
+                  <textarea 
+                    className="form-input" 
+                    rows={2} 
+                    value={form.description} 
+                    onChange={e => setForm({...form, description: e.target.value})} 
+                    placeholder="Mô tả yêu cầu..."
+                    style={{ resize: 'vertical' }}
+                  />
                 </div>
 
                 <div className="form-group">
