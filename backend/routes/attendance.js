@@ -30,6 +30,20 @@ router.post('/check-in', authenticate, async (req, res) => {
       VALUES (?, ?, ?, 'PRESENT')
     `).run(id, req.user.id, check_in);
 
+    // [SYNC] Cũng thêm vào bảng attendance_records mới để báo cáo hiển thị được
+    const recordId = generateId();
+    await db.prepare(`
+      INSERT INTO attendance_records 
+        (id, user_id, work_date, check_in_at, status, payroll_status)
+      VALUES (?, ?, CURRENT_DATE, ?, 'ON_TIME', 'DRAFT')
+    `).run(recordId, req.user.id, check_in);
+
+    // [SYNC] Ghi log vào attendance_events
+    await db.prepare(`
+      INSERT INTO attendance_events (id, user_id, event_type, event_at, source)
+      VALUES (?, ?, 'CHECK_IN', ?, 'WEB')
+    `).run(generateId(), req.user.id, check_in);
+
     res.status(201).json({ id, check_in, status: 'PRESENT' });
   } catch (err) {
     logger.error('ATTENDANCE', err);
@@ -59,11 +73,28 @@ router.post('/check-out', authenticate, async (req, res) => {
 
     await db.prepare(`
       UPDATE attendance 
-      SET check_out = ?, duration_hours = ?
+      SET check_out = ?, duration_hours = ? 
       WHERE id = ?
     `).run(check_out, duration_hours, activeAttendance.id);
 
-    res.json({ ...activeAttendance, check_out, duration_hours });
+    // [SYNC] Cập nhật bảng attendance_records mới
+    const totalMinutes = Math.round(duration_hours * 60);
+    await db.prepare(`
+      UPDATE attendance_records 
+      SET check_out_at = ?, 
+          total_work_minutes = ?,
+          regular_minutes = ?,
+          status = 'COMPLETED'
+      WHERE user_id = ? AND check_out_at IS NULL
+    `).run(check_out, totalMinutes, totalMinutes, req.user.id);
+
+    // [SYNC] Ghi log vào attendance_events
+    await db.prepare(`
+      INSERT INTO attendance_events (id, user_id, event_type, event_at, source)
+      VALUES (?, ?, 'CHECK_OUT', ?, 'WEB')
+    `).run(generateId(), req.user.id, check_out);
+
+    res.json({ check_out, duration_hours });
   } catch (err) {
     logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
