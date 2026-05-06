@@ -63,19 +63,17 @@ app.use('/api/shift-management', require('./routes/shift_management'));
 
 
 // 4. Phục vụ file tĩnh Frontend
-// app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 
 // 5. Fallback cho Frontend
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    // const indexPath = path.join(__dirname, '../frontend/dist/index.html');
-    const indexPath = path.join(__dirname, 'public/index.html');
+    const indexPath = path.join(__dirname, '../frontend/dist/index.html');
 
     res.sendFile(indexPath, (err) => {
       // Nếu không tìm thấy file dist (khi chạy dev), trả về 404 cho route này
-      if (err) res.status(404).send("Frontend build not found. This is normal in dev mode.");
+      if (err) res.status(404).send("Frontend build not found. Please run 'npm run build' in the frontend directory.");
     });
   }
 });
