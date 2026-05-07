@@ -1,7 +1,7 @@
--- Disable foreign key checks temporarily in case of existing tables dropping/recreating
+-- Disable foreign key checks temporarily
 SET FOREIGN_KEY_CHECKS=0;
 
--- Users Table
+-- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(50) PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Projects Table
+-- 2. Projects Table
 CREATE TABLE IF NOT EXISTS projects (
     id VARCHAR(50) PRIMARY KEY,
     project_name VARCHAR(255) NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS projects (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Project Items Table (Global Categories)
+-- 3. Project Items Table (Global Categories)
 CREATE TABLE IF NOT EXISTS project_items (
     id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS project_items (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Project Item Mapping (Linking projects to multiple items)
+-- 4. Project Item Mapping
 CREATE TABLE IF NOT EXISTS project_item_mapping (
     project_id VARCHAR(50) NOT NULL,
     item_id VARCHAR(50) NOT NULL,
@@ -41,11 +41,64 @@ CREATE TABLE IF NOT EXISTS project_item_mapping (
     FOREIGN KEY (item_id) REFERENCES project_items(id) ON DELETE CASCADE
 );
 
--- Tasks Table (Assigned work)
+-- 5. Shift Templates
+CREATE TABLE IF NOT EXISTS shift_templates (
+  id VARCHAR(50) PRIMARY KEY,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  break_minutes INT NOT NULL DEFAULT 0,
+  base_multiplier REAL NOT NULL DEFAULT 1.00,
+  color VARCHAR(30) NULL,
+  checkin_early_minutes INT NOT NULL DEFAULT 30,
+  checkin_late_minutes INT NOT NULL DEFAULT 120,
+  late_grace_minutes INT NOT NULL DEFAULT 5,
+  checkout_grace_minutes INT NOT NULL DEFAULT 5,
+  requires_assignment BOOLEAN NOT NULL DEFAULT 1,
+  is_active BOOLEAN NOT NULL DEFAULT 1,
+  location_type VARCHAR(20) NOT NULL DEFAULT 'WORKSHOP',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. Shift Instances
+CREATE TABLE IF NOT EXISTS shift_instances (
+  id VARCHAR(50) PRIMARY KEY,
+  shift_template_id VARCHAR(50) NOT NULL,
+  work_date DATE NOT NULL,
+  start_at DATETIME NOT NULL,
+  end_at DATETIME NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'OPEN',
+  note TEXT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (shift_template_id) REFERENCES shift_templates(id),
+  UNIQUE (shift_template_id, work_date)
+);
+
+-- 7. Shift Assignments
+CREATE TABLE IF NOT EXISTS shift_assignments (
+  id VARCHAR(50) PRIMARY KEY,
+  shift_instance_id VARCHAR(50) NOT NULL,
+  user_id VARCHAR(50) NOT NULL,
+  role_name VARCHAR(100) NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'SCHEDULED',
+  assigned_by VARCHAR(50) NULL,
+  assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  note TEXT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (shift_instance_id) REFERENCES shift_instances(id),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  UNIQUE (shift_instance_id, user_id)
+);
+
+-- 8. Tasks Table
 CREATE TABLE IF NOT EXISTS tasks (
     id VARCHAR(50) PRIMARY KEY,
     project_id VARCHAR(50) NOT NULL,
-    project_item_id VARCHAR(50), -- Link to specific project category/item
+    project_item_id VARCHAR(50),
     assigned_to VARCHAR(50) NOT NULL,
     title VARCHAR(255),
     description TEXT,
@@ -56,10 +109,54 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(id),
     FOREIGN KEY (project_item_id) REFERENCES project_items(id),
-    FOREIGN KEY (assigned_to) REFERENCES users(id)
+    FOREIGN KEY (assigned_to) REFERENCES users(id),
+    FOREIGN KEY (target_shift_id) REFERENCES shift_templates(id)
 );
 
--- WorkLogs Table (Real-time Tracking)
+-- 9. Attendance Events (Raw logs)
+CREATE TABLE IF NOT EXISTS attendance_events (
+  id VARCHAR(50) PRIMARY KEY,
+  user_id VARCHAR(50) NOT NULL,
+  event_type VARCHAR(20) NOT NULL, -- CHECK_IN, CHECK_OUT
+  event_at DATETIME NOT NULL,
+  source VARCHAR(30) NOT NULL, -- WEB, MOBILE, DEVICE
+  device_id VARCHAR(100) NULL,
+  shift_instance_id VARCHAR(50) NULL,
+  metadata TEXT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (shift_instance_id) REFERENCES shift_instances(id)
+);
+
+-- 10. Attendance Records (Processed)
+CREATE TABLE IF NOT EXISTS attendance_records (
+  id VARCHAR(50) PRIMARY KEY,
+  user_id VARCHAR(50) NOT NULL,
+  shift_instance_id VARCHAR(50) NULL,
+  shift_assignment_id VARCHAR(50) NULL,
+  work_date DATE NOT NULL,
+  check_in_at DATETIME NULL,
+  check_out_at DATETIME NULL,
+  regular_minutes INT NOT NULL DEFAULT 0,
+  overtime_minutes INT NOT NULL DEFAULT 0,
+  night_minutes INT NOT NULL DEFAULT 0,
+  late_minutes INT NOT NULL DEFAULT 0,
+  early_leave_minutes INT NOT NULL DEFAULT 0,
+  break_minutes INT NOT NULL DEFAULT 0,
+  total_work_minutes INT NOT NULL DEFAULT 0,
+  status VARCHAR(30) NOT NULL, -- ON_TIME, LATE, COMPLETED, ABSENT, etc.
+  location_type VARCHAR(20) NOT NULL DEFAULT 'WORKSHOP',
+  payroll_status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
+  requires_review BOOLEAN NOT NULL DEFAULT 0,
+  review_reason TEXT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (shift_instance_id) REFERENCES shift_instances(id),
+  FOREIGN KEY (shift_assignment_id) REFERENCES shift_assignments(id)
+);
+
+-- 11. WorkLogs Table (Real-time Task Tracking)
 CREATE TABLE IF NOT EXISTS worklogs (
     id VARCHAR(50) PRIMARY KEY,
     user_id VARCHAR(50) NOT NULL,
@@ -83,29 +180,34 @@ CREATE TABLE IF NOT EXISTS worklogs (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
--- Attendance Table (Daily presence)
-CREATE TABLE IF NOT EXISTS attendance (
-    id VARCHAR(50) PRIMARY KEY,
-    user_id VARCHAR(50) NOT NULL,
-    check_in DATETIME NOT NULL,
-    check_out DATETIME,
-    duration_hours REAL,
-    status VARCHAR(20) NOT NULL DEFAULT 'PRESENT',
-    note TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+-- 12. Payroll Multiplier Rules
+CREATE TABLE IF NOT EXISTS payroll_multiplier_rules (
+  id VARCHAR(50) PRIMARY KEY,
+  code VARCHAR(80) NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  day_type VARCHAR(30) NOT NULL,
+  segment_type VARCHAR(50) NOT NULL,
+  multiplier REAL NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT 1,
+  effective_from DATE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance
+-- 13. Holiday Calendar
+CREATE TABLE IF NOT EXISTS holiday_calendar (
+  id VARCHAR(50) PRIMARY KEY,
+  holiday_date DATE NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  day_type VARCHAR(30) NOT NULL,
+  is_paid_day BOOLEAN NOT NULL DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_worklogs_user_id ON worklogs(user_id);
-CREATE INDEX IF NOT EXISTS idx_worklogs_project_id ON worklogs(project_id);
 CREATE INDEX IF NOT EXISTS idx_worklogs_status ON worklogs(status);
-CREATE INDEX IF NOT EXISTS idx_worklogs_start_time ON worklogs(start_time);
-CREATE INDEX IF NOT EXISTS idx_attendance_user_id ON attendance(user_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_check_in ON attendance(check_in);
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
-CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_worklogs_task_id ON worklogs(task_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_records_user_date ON attendance_records(user_id, work_date);
+CREATE INDEX IF NOT EXISTS idx_attendance_records_status ON attendance_records(status);
 
 SET FOREIGN_KEY_CHECKS=1;

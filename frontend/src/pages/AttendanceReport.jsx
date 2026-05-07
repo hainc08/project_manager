@@ -64,7 +64,7 @@ export default function AttendanceReport() {
   };
 
   // Calculate total hours in the current report
-  const totalHours = report.reduce((sum, item) => sum + (item.duration_hours || 0), 0);
+  const totalHours = report.reduce((sum, item) => sum + (parseFloat(item.duration_hours) || 0), 0);
 
   // Calculate summary per user
   const userSummary = Object.values(report.reduce((acc, item) => {
@@ -72,7 +72,7 @@ export default function AttendanceReport() {
       acc[item.user_id] = { user_id: item.user_id, full_name: item.full_name, total_shifts: 0, total_hours: 0 };
     }
     acc[item.user_id].total_shifts += 1;
-    acc[item.user_id].total_hours += item.duration_hours || 0;
+    acc[item.user_id].total_hours += parseFloat(item.duration_hours) || 0;
     return acc;
   }, {})).sort((a, b) => b.total_shifts - a.total_shifts);
 
@@ -182,6 +182,7 @@ export default function AttendanceReport() {
                   <tr>
                     <th>Nhân viên</th>
                     <th>Ca làm việc</th>
+                    <th>Địa điểm</th>
                     <th>Vào ca (Check-in)</th>
                     <th>Tan ca (Check-out)</th>
                     <th className="text-right">Tổng giờ</th>
@@ -197,14 +198,21 @@ export default function AttendanceReport() {
                           <span className="badge" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                             {item.shift_name}
                           </span>
-                        ) : '---'}
+                        ) : (
+                          <span className="text-muted">---</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`badge ${item.location_type === 'SITE' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                          {item.location_type === 'SITE' ? '📍 Công trường' : '🏠 Tại xưởng'}
+                        </span>
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(item.check_in)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {item.check_out ? formatDateTime(item.check_out) : <span className="badge badge-active">Đang làm việc</span>}
                       </td>
                       <td className="text-right font-mono">
-                        {item.duration_hours ? formatDuration(item.duration_hours) : '-'}
+                        {item.duration_hours != null ? formatDuration(item.duration_hours) : '-'}
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

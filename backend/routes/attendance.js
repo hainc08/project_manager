@@ -6,45 +6,39 @@ const logger = require('../utils/logger');
 
 /**
  * POST /api/attendance/check-in
- * Start daily attendance session
+ * Start daily attendance session (Manual Check-in without shift)
  */
 router.post('/check-in', authenticate, async (req, res) => {
   try {
     const db = req.app.get('db');
     
-    // Check if already checked in today (and not checked out)
-    const activeAttendance = await db.prepare(`
-      SELECT id FROM attendance 
-      WHERE user_id = ? AND check_out IS NULL
+    // Check if already checked in today (and not checked out) in attendance_records
+    const activeRecord = await db.prepare(`
+      SELECT id FROM attendance_records 
+      WHERE user_id = ? AND check_out_at IS NULL
     `).get(req.user.id);
 
-    if (activeAttendance) {
+    if (activeRecord) {
       return res.status(400).json({ error: 'Bạn đã check-in rồi.' });
     }
 
     const id = generateId();
     const check_in = getMySQLDateTime();
 
-    await db.prepare(`
-      INSERT INTO attendance (id, user_id, check_in, status)
-      VALUES (?, ?, ?, 'PRESENT')
-    `).run(id, req.user.id, check_in);
-
-    // [SYNC] Cũng thêm vào bảng attendance_records mới để báo cáo hiển thị được
-    const recordId = generateId();
+    // Insert into attendance_records directly
     await db.prepare(`
       INSERT INTO attendance_records 
         (id, user_id, work_date, check_in_at, status, payroll_status)
       VALUES (?, ?, CURRENT_DATE, ?, 'ON_TIME', 'DRAFT')
-    `).run(recordId, req.user.id, check_in);
+    `).run(id, req.user.id, check_in);
 
-    // [SYNC] Ghi log vào attendance_events
+    // Ghi log vào attendance_events
     await db.prepare(`
       INSERT INTO attendance_events (id, user_id, event_type, event_at, source)
       VALUES (?, ?, 'CHECK_IN', ?, 'WEB')
     `).run(generateId(), req.user.id, check_in);
 
-    res.status(201).json({ id, check_in, status: 'PRESENT' });
+    res.status(201).json({ id, check_in, status: 'ON_TIME' });
   } catch (err) {
     logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
@@ -59,36 +53,31 @@ router.post('/check-out', authenticate, async (req, res) => {
   try {
     const db = req.app.get('db');
     
-    const activeAttendance = await db.prepare(`
-      SELECT * FROM attendance 
-      WHERE user_id = ? AND check_out IS NULL
+    const activeRecord = await db.prepare(`
+      SELECT * FROM attendance_records 
+      WHERE user_id = ? AND check_out_at IS NULL
     `).get(req.user.id);
 
-    if (!activeAttendance) {
+    if (!activeRecord) {
       return res.status(404).json({ error: 'Không tìm thấy phiên check-in đang hoạt động.' });
     }
 
     const check_out = getMySQLDateTime();
-    const duration_hours = calcDurationHours(activeAttendance.check_in, check_out);
-
-    await db.prepare(`
-      UPDATE attendance 
-      SET check_out = ?, duration_hours = ? 
-      WHERE id = ?
-    `).run(check_out, duration_hours, activeAttendance.id);
-
-    // [SYNC] Cập nhật bảng attendance_records mới
+    const duration_hours = calcDurationHours(activeRecord.check_in_at, check_out);
     const totalMinutes = Math.round(duration_hours * 60);
+
+    // Update attendance_records
     await db.prepare(`
       UPDATE attendance_records 
       SET check_out_at = ?, 
           total_work_minutes = ?,
           regular_minutes = ?,
-          status = 'COMPLETED'
-      WHERE user_id = ? AND check_out_at IS NULL
-    `).run(check_out, totalMinutes, totalMinutes, req.user.id);
+          status = 'COMPLETED',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(check_out, totalMinutes, totalMinutes, activeRecord.id);
 
-    // [SYNC] Ghi log vào attendance_events
+    // Ghi log vào attendance_events
     await db.prepare(`
       INSERT INTO attendance_events (id, user_id, event_type, event_at, source)
       VALUES (?, ?, 'CHECK_OUT', ?, 'WEB')
@@ -109,12 +98,13 @@ router.get('/my-status', authenticate, async (req, res) => {
   try {
     const db = req.app.get('db');
     
-    const activeAttendance = await db.prepare(`
-      SELECT * FROM attendance 
-      WHERE user_id = ? AND check_out IS NULL
+    const activeRecord = await db.prepare(`
+      SELECT id, check_in_at as check_in, status 
+      FROM attendance_records 
+      WHERE user_id = ? AND check_out_at IS NULL
     `).get(req.user.id);
 
-    res.json({ active: activeAttendance || null });
+    res.json({ active: activeRecord || null });
   } catch (err) {
     logger.error('ATTENDANCE', err);
     res.status(500).json({ error: 'Lỗi server' });
@@ -130,9 +120,10 @@ router.get('/my-history', authenticate, async (req, res) => {
     const db = req.app.get('db');
     
     const history = await db.prepare(`
-      SELECT * FROM attendance 
+      SELECT id, check_in_at as check_in, check_out_at as check_out, status, total_work_minutes
+      FROM attendance_records 
       WHERE user_id = ?
-      ORDER BY check_in DESC
+      ORDER BY check_in_at DESC
       LIMIT 30
     `).all(req.user.id);
 
@@ -154,8 +145,8 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
 
     let query = `
       SELECT ar.id, ar.user_id, ar.check_in_at as check_in, ar.check_out_at as check_out, 
-             ar.total_work_minutes / 60.0 as duration_hours, ar.late_minutes, ar.overtime_minutes,
-             ar.status, u.full_name, st.name as shift_name
+             CAST(ar.total_work_minutes / 60.0 AS DOUBLE) as duration_hours, ar.late_minutes, ar.overtime_minutes,
+             ar.status, ar.location_type, u.full_name, st.name as shift_name
       FROM attendance_records ar
       JOIN users u ON ar.user_id = u.id
       LEFT JOIN shift_instances si ON ar.shift_instance_id = si.id

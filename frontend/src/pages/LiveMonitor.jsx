@@ -42,8 +42,9 @@ export default function LiveMonitor() {
     }
     
     // Calculate cost based on frontend estimation
-    const stdCost = stdHours * standardRate;
-    const otCost = otHours * standardRate * 1.5;
+    const rate = parseFloat(standardRate) || 0;
+    const stdCost = stdHours * rate;
+    const otCost = otHours * rate * 1.5;
     
     return {
       total: Math.round(stdCost + otCost),
@@ -142,7 +143,15 @@ export default function LiveMonitor() {
                       </span>
                     )}
                   </div>
-                  <div className="live-card-project">📁 {task.project_name}</div>
+                  <div className="live-card-project" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 600 }}>📁 {task.project_name}</span>
+                    {task.project_item_name && (
+                      <span style={{ opacity: 0.8 }}>• {task.project_item_name}</span>
+                    )}
+                    <span className={`badge ${task.location_type === 'SITE' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                      {task.location_type === 'SITE' ? '📍 Công trường' : '🏠 Tại xưởng'}
+                    </span>
+                  </div>
                   {task.task_content && (
                     <div className="live-card-task">"{task.task_content}"</div>
                   )}

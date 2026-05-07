@@ -2,23 +2,25 @@
  * Format currency in VND
  */
 export function formatCurrency(value) {
-  if (value == null) return '0 ₫';
+  const n = parseFloat(value);
+  if (isNaN(n)) return '0 ₫';
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0
-  }).format(value);
+  }).format(n);
 }
 
 /**
  * Format number with separators
  */
 export function formatNumber(value, decimals = 2) {
-  if (value == null) return '0';
+  const n = parseFloat(value);
+  if (isNaN(n)) return '0';
   return new Intl.NumberFormat('vi-VN', {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals
-  }).format(value);
+  }).format(n);
 }
 
 /**
@@ -68,7 +70,8 @@ export function formatElapsedTime(startTime, endTime = null) {
  * Format duration in hours to readable text
  */
 export function formatDuration(hours) {
-  if (hours == null) return '-';
+  if (hours == null || isNaN(hours)) return '-';
+  if (hours === 0) return '0 phút';
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
   if (h === 0) return `${m} phút`;

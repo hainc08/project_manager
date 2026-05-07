@@ -32,19 +32,11 @@ router.post('/start', authenticate, async (req, res) => {
       });
     }
 
-    // Mandatory Check-in check — chấp nhận cả 2 hệ thống:
-    // 1. Hệ thống cũ: bảng `attendance` (check-in/out đơn giản)
-    // 2. Hệ thống mới: bảng `attendance_records` (check-in theo ca)
-    const [oldAttendance, newAttendance] = await Promise.all([
-      db.prepare(
-        "SELECT id FROM attendance WHERE user_id = ? AND check_out IS NULL"
-      ).get(req.user.id),
-      db.prepare(
-        "SELECT id FROM attendance_records WHERE user_id = ? AND check_in_at IS NOT NULL AND check_out_at IS NULL AND work_date = DATE(NOW())"
-      ).get(req.user.id)
-    ]);
+    const attendance = await db.prepare(
+      "SELECT id FROM attendance_records WHERE user_id = ? AND check_in_at IS NOT NULL AND check_out_at IS NULL AND work_date = DATE(NOW())"
+    ).get(req.user.id);
 
-    if (!oldAttendance && !newAttendance) {
+    if (!attendance) {
       return res.status(403).json({ 
         error: 'Yêu cầu vào ca (Check-in) trước khi bắt đầu ghi nhận công việc.' 
       });
@@ -89,7 +81,7 @@ router.post('/start', authenticate, async (req, res) => {
 
     const worklog = await db.prepare(`
       SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
-             t.title as task_title, pi.name as project_item_name
+             t.title as task_title, t.location_type, pi.name as project_item_name
       FROM worklogs w
       JOIN users u ON w.user_id = u.id
       JOIN projects p ON w.project_id = p.id
@@ -210,7 +202,7 @@ router.get('/active', authenticate, async (req, res) => {
     const db = req.app.get('db');
     const activeTasks = await db.prepare(`
       SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
-             t.title as task_title, pi.name as project_item_name,
+             t.title as task_title, t.location_type, pi.name as project_item_name,
              st.name as active_shift_name
       FROM worklogs w
       JOIN users u ON w.user_id = u.id
@@ -238,11 +230,13 @@ router.get('/my', authenticate, async (req, res) => {
   try {
     const db = req.app.get('db');
     const worklogs = await db.prepare(`
-      SELECT w.*, p.project_name, t.title as task_title, pi.name as project_item_name
+      SELECT w.*, p.project_name, t.title as task_title, t.location_type, pi.name as project_item_name,
+             st.name as target_shift_name
       FROM worklogs w
       JOIN projects p ON w.project_id = p.id
       LEFT JOIN tasks t ON w.task_id = t.id
       LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      LEFT JOIN shift_templates st ON t.target_shift_id = st.id
       WHERE w.user_id = ?
       ORDER BY w.start_time DESC
       LIMIT 50
@@ -265,12 +259,14 @@ router.get('/report', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (req
 
     let query = `
       SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
-             t.title as task_title, pi.name as project_item_name
+             t.title as task_title, t.location_type, pi.name as project_item_name,
+             st.name as target_shift_name
       FROM worklogs w
       JOIN users u ON w.user_id = u.id
       JOIN projects p ON w.project_id = p.id
       LEFT JOIN tasks t ON w.task_id = t.id
       LEFT JOIN project_items pi ON t.project_item_id = pi.id
+      LEFT JOIN shift_templates st ON t.target_shift_id = st.id
       WHERE w.status = 'DONE'
     `;
     const params = [];
@@ -496,9 +492,9 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
     // Total stats (all time)
     const totals = await db.prepare(`
       SELECT 
-        COALESCE(SUM(actual_cost), 0) as total_cost,
-        COALESCE(SUM(actual_revenue), 0) as total_revenue,
-        COALESCE(SUM(duration_hours), 0) as total_hours,
+        COALESCE(SUM(actual_cost), 0) * 1.0 as total_cost,
+        COALESCE(SUM(actual_revenue), 0) * 1.0 as total_revenue,
+        COALESCE(SUM(duration_hours), 0) * 1.0 as total_hours,
         COUNT(*) as total_tasks
       FROM worklogs WHERE status = 'DONE'
     `).get();

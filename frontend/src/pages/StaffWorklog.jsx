@@ -182,9 +182,12 @@ export default function StaffWorklog() {
                 <div style={{ textAlign: 'left' }}>
                   <div className="badge badge-active" style={{ marginBottom: '4px' }}>Đang thực hiện</div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{activeTask.task_title || activeTask.task_content || 'Công việc không tên'}</h3>
-                  <p className="text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
-                    Dự án: {activeTask.project_name} 
-                    {activeTask.project_item_name && ` | Hạng mục: ${activeTask.project_item_name}`}
+                  <p className="text-muted" style={{ margin: 0, fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span>📁 {activeTask.project_name}</span>
+                    <span className={`badge ${activeTask.location_type === 'SITE' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                      {activeTask.location_type === 'SITE' ? '📍 Công trường' : '🏠 Tại xưởng'}
+                    </span>
+                    {activeTask.project_item_name && <span> | Hạng mục: {activeTask.project_item_name}</span>}
                   </p>
                 </div>
               </div>
@@ -223,7 +226,8 @@ export default function StaffWorklog() {
                 <thead>
                   <tr>
                     <th>Công việc</th>
-                    <th>Hạng mục</th>
+                    <th>Địa điểm</th>
+                    <th>Ca dự kiến</th>
                     <th>Ngày giao</th>
                     <th>Trạng thái</th>
                     <th className="text-right">Hành động</th>
@@ -233,13 +237,24 @@ export default function StaffWorklog() {
                   {assignedTasks.map(task => (
                     <tr key={task.id} style={{ opacity: task.status === 'FINISHED_BY_STAFF' ? 0.7 : 1 }}>
                       <td data-label="Công việc">
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{task.project_name}</div>
                         <div style={{ fontWeight: 600 }}>{task.title}</div>
-                        {task.description && <div className="text-muted" style={{ fontSize: '0.75rem' }}>{task.description}</div>}
+                        {task.project_item_name && (
+                          <div style={{ fontSize: '0.75rem' }}>
+                            <span className="text-muted">Hạng mục: </span>
+                            <span className="badge badge-purple" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>{task.project_item_name}</span>
+                          </div>
+                        )}
                       </td>
-                      <td data-label="Hạng mục">
-                        {task.project_item_name ? (
-                          <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>{task.project_item_name}</span>
+                      <td data-label="Địa điểm">
+                        <span className={`badge ${task.location_type === 'SITE' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                          {task.location_type === 'SITE' ? '📍 Công trường' : '🏠 Tại xưởng'}
+                        </span>
+                      </td>
+                      <td data-label="Ca dự kiến">
+                        {task.target_shift_name ? (
+                          <span className="badge" style={{ fontSize: '0.7rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                            {task.target_shift_name}
+                          </span>
                         ) : '---'}
                       </td>
                       <td data-label="Ngày giao">{formatDateTime(task.created_at)}</td>
@@ -297,6 +312,7 @@ export default function StaffWorklog() {
                   <tr>
                     <th>Dự án</th>
                     <th>Công việc</th>
+                    <th>Địa điểm</th>
                     <th>Bắt đầu</th>
                     <th>Kết thúc</th>
                     <th className="text-right">Thời gian</th>
@@ -307,6 +323,11 @@ export default function StaffWorklog() {
                     <tr key={w.id}>
                       <td data-label="Dự án"><strong>{w.project_name}</strong></td>
                       <td data-label="Công việc" className="text-muted">{w.task_title || 'N/A'}</td>
+                      <td data-label="Địa điểm">
+                        <span className={`badge ${w.location_type === 'SITE' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                          {w.location_type === 'SITE' ? '📍 Công trường' : '🏠 Tại xưởng'}
+                        </span>
+                      </td>
                       <td data-label="Bắt đầu" style={{ whiteSpace: 'nowrap' }}>{formatDateTime(w.start_time)}</td>
                       <td data-label="Kết thúc" style={{ whiteSpace: 'nowrap' }}>{formatDateTime(w.end_time)}</td>
                       <td data-label="Thời gian" className="text-right font-mono">{formatDuration(w.duration_hours)}</td>

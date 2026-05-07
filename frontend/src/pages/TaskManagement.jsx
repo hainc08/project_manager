@@ -199,6 +199,7 @@ export default function TaskManagement() {
                 <thead>
                   <tr>
                     <th>Công việc</th>
+                    <th>Địa điểm</th>
                     <th>Hạng mục</th>
                     <th>Dự án</th>
                     <th>Ca dự kiến</th>
@@ -214,6 +215,11 @@ export default function TaskManagement() {
                       <td data-label="Công việc">
                         <div style={{ fontWeight: 600 }}>{task.title}</div>
                         {task.description && <div className="text-muted" style={{ fontSize: '0.75rem' }}>{task.description}</div>}
+                      </td>
+                      <td data-label="Địa điểm">
+                        <span className={`badge ${task.location_type === 'SITE' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                          {task.location_type === 'SITE' ? '📍 Công trường' : '🏠 Tại xưởng'}
+                        </span>
                       </td>
                       <td data-label="Hạng mục">
                         {task.project_item_name ? (

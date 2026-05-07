@@ -84,7 +84,7 @@ async function startServer() {
     console.log('📦 Initializing Database...');
     const db = await initDB();
     app.set('db', db);
-    console.log('✅ Database connected');
+    console.log(`✅ Database connected to: ${process.env.DB_NAME || 'SQLite'} on ${process.env.DB_HOST || 'local'}`);
 
     const io = new Server(server, { cors: { origin: "*" } });
     app.set('io', io);

@@ -50,9 +50,18 @@ export default function FinancialReport() {
       if (userId) params.user_id = userId;
 
       const res = await api.get('/worklogs/report', { params });
-      setWorklogs(res.data.worklogs);
+      const worklogs = res.data.worklogs.map(w => ({
+        ...w,
+        duration_hours: parseFloat(w.duration_hours) || 0,
+        actual_cost: parseFloat(w.actual_cost) || 0
+      }));
+      setWorklogs(worklogs);
       setSummary(res.data.summary);
-      setItemSummary(res.data.item_summary || []);
+      setItemSummary((res.data.item_summary || []).map(item => ({
+        ...item,
+        total_hours: parseFloat(item.total_hours) || 0,
+        total_cost: parseFloat(item.total_cost) || 0
+      })));
     } catch (err) {
       console.error('Failed to fetch report', err);
       setError('Không thể tải dữ liệu báo cáo. Vui lòng kiểm tra lại kết nối hoặc liên hệ quản trị viên.');
@@ -219,6 +228,7 @@ export default function FinancialReport() {
                     <th>Nhân viên</th>
                     <th>Dự án</th>
                     <th>Địa điểm</th>
+                    <th>Ca được giao</th>
                     <th className="text-right">Giờ chuẩn</th>
                     <th className="text-right">Giờ tăng ca</th>
                     <th className="text-right">Hệ số</th>
@@ -231,9 +241,18 @@ export default function FinancialReport() {
                       <td><strong>{w.full_name}</strong></td>
                       <td>{w.project_name}</td>
                       <td>
-                        <span className={`badge ${w.location_multiplier > 1 ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.7rem' }}>
-                          {w.location_multiplier > 1 ? '🏗️ Công trường' : '🏠 Nhà xưởng'}
+                        <span className={`badge ${w.location_type === 'SITE' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: '0.7rem' }}>
+                          {w.location_type === 'SITE' ? '📍 Công trường' : '🏠 Tại xưởng'}
                         </span>
+                      </td>
+                      <td>
+                        {w.target_shift_name ? (
+                          <span className="badge" style={{ fontSize: '0.7rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                            {w.target_shift_name}
+                          </span>
+                        ) : (
+                          <span className="text-muted">---</span>
+                        )}
                       </td>
                       <td className="text-right font-mono">{formatDuration(w.standard_hours)}</td>
                       <td className="text-right font-mono text-warning">{formatDuration(w.ot_hours)}</td>
