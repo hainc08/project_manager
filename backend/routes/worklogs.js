@@ -124,24 +124,17 @@ router.post('/stop', authenticate, async (req, res) => {
     const taskData = await db.prepare("SELECT location_type FROM tasks WHERE id = ?").get(activeTask.task_id);
     const locationType = taskData?.location_type || 'WORKSHOP';
 
-    // Fetch dynamic rules from DB
-    const dbRules = await db.prepare("SELECT code, multiplier FROM payroll_multiplier_rules").all();
-    const ruleMap = {};
-    if (dbRules) {
-      dbRules.forEach(r => { ruleMap[r.code] = parseFloat(r.multiplier); });
-    }
-
-    // Fetch holidays
+    // Fetch holidays from DB
     const dbHolidays = await db.prepare("SELECT holiday_date FROM holiday_calendar").all();
-    const holidayList = dbHolidays 
-      ? dbHolidays.map(h => (typeof h.holiday_date === 'string' ? h.holiday_date.split('T')[0] : new Date(h.holiday_date).toISOString().split('T')[0])) 
+    const holidayList = dbHolidays
+      ? dbHolidays.map(h => (typeof h.holiday_date === 'string' ? h.holiday_date.split('T')[0] : new Date(h.holiday_date).toISOString().split('T')[0]))
       : [];
 
     const dynamicRules = {
-      ot1_multiplier: ruleMap['OT_NORMAL_DAY'] || 1.5,
-      ot2_multiplier: ruleMap['OT_NIGHT'] || 1.5,
-      holiday_multiplier: ruleMap['OT_PUBLIC_HOLIDAY'] || 1.5,
-      site_multiplier: 1.2, // Fixed for now unless added to DB
+      ot1_multiplier: 1.5,
+      ot2_multiplier: 2.0,
+      holiday_multiplier: 2.0,
+      site_multiplier: 1.2,
       holidays: holidayList
     };
     
@@ -201,9 +194,23 @@ router.get('/active', authenticate, async (req, res) => {
   try {
     const db = req.app.get('db');
     const activeTasks = await db.prepare(`
-      SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name, 
+      SELECT w.*, u.full_name, u.standard_rate, u.billing_rate, p.project_name,
              t.title as task_title, t.location_type, pi.name as project_item_name,
-             st.name as active_shift_name
+             st.name as active_shift_name,
+             ar.check_in_at as attendance_check_in,
+             CASE
+               WHEN ar.check_in_at IS NULL THEN 'PENDING'
+               WHEN TIMESTAMPDIFF(MINUTE, si.start_at, ar.check_in_at) < 0 THEN 'EARLY'
+               WHEN TIMESTAMPDIFF(MINUTE, si.start_at, ar.check_in_at) <= COALESCE(st.late_grace_minutes, 10) THEN 'ON_TIME'
+               ELSE 'LATE'
+             END AS attendance_status,
+             CASE
+               WHEN TIMESTAMPDIFF(MINUTE, si.start_at, ar.check_in_at) < 0
+                 THEN ABS(TIMESTAMPDIFF(MINUTE, si.start_at, ar.check_in_at))
+               WHEN TIMESTAMPDIFF(MINUTE, si.start_at, ar.check_in_at) > COALESCE(st.late_grace_minutes, 10)
+                 THEN TIMESTAMPDIFF(MINUTE, si.start_at, ar.check_in_at) - COALESCE(st.late_grace_minutes, 10)
+               ELSE 0
+             END AS attendance_diff_minutes
       FROM worklogs w
       JOIN users u ON w.user_id = u.id
       JOIN projects p ON w.project_id = p.id
@@ -431,20 +438,15 @@ router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
       const taskData = await db.prepare("SELECT location_type FROM tasks WHERE id = ?").get(worklog.task_id);
       const locationType = taskData?.location_type || 'WORKSHOP';
 
-      // Fetch dynamic rules
-      const dbRules = await db.prepare("SELECT code, multiplier FROM payroll_multiplier_rules").all();
-      const ruleMap = {};
-      if (dbRules) dbRules.forEach(r => { ruleMap[r.code] = parseFloat(r.multiplier); });
-
       const dbHolidays = await db.prepare("SELECT holiday_date FROM holiday_calendar").all();
-      const holidayList = dbHolidays 
-        ? dbHolidays.map(h => (typeof h.holiday_date === 'string' ? h.holiday_date.split('T')[0] : new Date(h.holiday_date).toISOString().split('T')[0])) 
+      const holidayList = dbHolidays
+        ? dbHolidays.map(h => (typeof h.holiday_date === 'string' ? h.holiday_date.split('T')[0] : new Date(h.holiday_date).toISOString().split('T')[0]))
         : [];
 
       const dynamicRules = {
-        ot1_multiplier: ruleMap['OT_NORMAL_DAY'] || 1.5,
-        ot2_multiplier: ruleMap['OT_NIGHT'] || 1.5,
-        holiday_multiplier: ruleMap['OT_PUBLIC_HOLIDAY'] || 1.5,
+        ot1_multiplier: 1.5,
+        ot2_multiplier: 2.0,
+        holiday_multiplier: 2.0,
         site_multiplier: 1.2,
         holidays: holidayList
       };
@@ -492,9 +494,9 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
     // Total stats (all time)
     const totals = await db.prepare(`
       SELECT 
-        COALESCE(SUM(actual_cost), 0) * 1.0 as total_cost,
-        COALESCE(SUM(actual_revenue), 0) * 1.0 as total_revenue,
-        COALESCE(SUM(duration_hours), 0) * 1.0 as total_hours,
+        ROUND(COALESCE(SUM(actual_cost), 0), 2) as total_cost,
+        ROUND(COALESCE(SUM(actual_revenue), 0), 2) as total_revenue,
+        ROUND(COALESCE(SUM(duration_hours), 0), 2) as total_hours,
         COUNT(*) as total_tasks
       FROM worklogs WHERE status = 'DONE'
     `).get();
@@ -512,8 +514,8 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
     const monthlyDataRaw = await db.prepare(`
       SELECT 
         DATE_FORMAT(start_time, '%Y-%m') as month,
-        COALESCE(SUM(actual_cost), 0) as cost,
-        COALESCE(SUM(actual_revenue), 0) as revenue
+        ROUND(COALESCE(SUM(actual_cost), 0), 2) as cost,
+        ROUND(COALESCE(SUM(actual_revenue), 0), 2) as revenue
       FROM worklogs WHERE status = 'DONE'
       GROUP BY DATE_FORMAT(start_time, '%Y-%m')
       ORDER BY month DESC
@@ -532,11 +534,11 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
         p.id as project_id,
         p.project_name,
         p.status,
-        COALESCE(SUM(w.actual_cost), 0) as cost,
-        COALESCE(SUM(w.duration_hours), 0) as hours,
-        COALESCE(SUM(w.standard_hours), 0) as standard_hours,
-        COALESCE(SUM(w.ot_hours), 0) as ot_hours,
-        COALESCE(SUM(w.ot_hours * u.standard_rate * w.ot_multiplier * w.location_multiplier * w.holiday_multiplier), 0) as ot_cost
+        ROUND(COALESCE(SUM(w.actual_cost), 0), 2) as cost,
+        ROUND(COALESCE(SUM(w.duration_hours), 0), 2) as hours,
+        ROUND(COALESCE(SUM(w.standard_hours), 0), 2) as standard_hours,
+        ROUND(COALESCE(SUM(w.ot_hours), 0), 2) as ot_hours,
+        ROUND(COALESCE(SUM(w.ot_hours * u.standard_rate * w.ot_multiplier * w.location_multiplier * w.holiday_multiplier), 0), 2) as ot_cost
       FROM projects p
       LEFT JOIN worklogs w ON p.id = w.project_id AND w.status = 'DONE'
       LEFT JOIN users u ON w.user_id = u.id
@@ -549,9 +551,9 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'ACCOUNTANT'), async (
       SELECT 
         w.project_id,
         COALESCE(pi.name, 'Chưa phân loại') as item_name,
-        COALESCE(SUM(w.standard_hours), 0) as standard_hours,
-        COALESCE(SUM(w.ot_hours), 0) as ot_hours,
-        COALESCE(SUM(w.actual_cost), 0) as total_cost
+        ROUND(COALESCE(SUM(w.standard_hours), 0), 2) as standard_hours,
+        ROUND(COALESCE(SUM(w.ot_hours), 0), 2) as ot_hours,
+        ROUND(COALESCE(SUM(w.actual_cost), 0), 2) as total_cost
       FROM worklogs w
       LEFT JOIN tasks t ON w.task_id = t.id
       LEFT JOIN project_items pi ON t.project_item_id = pi.id

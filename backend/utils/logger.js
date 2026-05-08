@@ -2,12 +2,19 @@ const fs = require('fs');
 const path = require('path');
 
 const LOG_DIR = path.join(__dirname, '..', 'logs');
-const LOG_FILE = path.join(LOG_DIR, 'app.log');
 
 // Ensure logs directory exists
 if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR, { recursive: true });
 }
+
+const getLogFilePath = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return path.join(LOG_DIR, `app-${year}-${month}-${day}.log`);
+};
 
 const formatMessage = (level, tag, message) => {
   const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
@@ -26,7 +33,8 @@ const writeLog = (level, tag, message) => {
 
   // Append to file
   try {
-    fs.appendFileSync(LOG_FILE, formatted);
+    const logFile = getLogFilePath();
+    fs.appendFileSync(logFile, formatted);
   } catch (err) {
     console.error('Failed to write to log file:', err);
   }
@@ -45,3 +53,4 @@ const logger = {
 };
 
 module.exports = logger;
+

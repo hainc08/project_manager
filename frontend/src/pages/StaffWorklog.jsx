@@ -54,38 +54,9 @@ export default function StaffWorklog() {
     }
   };
 
-  const handleCheckIn = async () => {
-    setActionLoading(true);
-    try {
-      const res = await api.post('/attendance/check-in');
-      setActiveAttendance(res.data);
-    } catch (err) {
-      alert(err.response?.data?.error || 'Không thể Check-in');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleCheckOut = async () => {
-    if (activeTask) {
-      alert('Vui lòng kết thúc công việc hiện tại trước khi Tan ca');
-      return;
-    }
-    setActionLoading(true);
-    try {
-      await api.post('/attendance/check-out');
-      setActiveAttendance(null);
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Không thể Check-out');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleStartTask = async (taskId) => {
     if (!activeAttendance) {
-      alert('Bạn phải Vào ca (Check-in) trước khi bắt đầu công việc');
+      alert('Bạn phải Check-in ca làm việc trước khi bắt đầu công việc');
       return;
     }
     setActionLoading(true);
@@ -143,35 +114,7 @@ export default function StaffWorklog() {
 
       <div className="page-body">
         {/* Shift Check-in Widget (Ca theo lịch) */}
-        <ShiftCheckInWidget onCheckInSuccess={fetchData} />
-
-        {/* Daily Attendance Card */}
-        <div className="card mb-lg" style={{ background: activeAttendance ? 'var(--card-bg)' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', border: activeAttendance ? '1px solid var(--border-color)' : '1px solid #3b82f6' }}>
-          <div className="card-body attendance-card-body" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-              <div style={{ fontSize: '2.5rem' }}>{activeAttendance ? '💼' : '👋'}</div>
-              <div style={{ textAlign: 'left' }}>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>{activeAttendance ? 'Bạn đang trong ca làm việc' : 'Chào buổi sáng!'}</h3>
-                <p className="text-muted" style={{ margin: '4px 0 0 0' }}>
-                  {activeAttendance 
-                    ? `Bắt đầu lúc: ${formatDateTime(activeAttendance.check_in)}` 
-                    : 'Vui lòng nhấn Vào ca để bắt đầu công việc trong ngày'
-                  }
-                </p>
-              </div>
-            </div>
-            
-            {activeAttendance ? (
-              <button className="btn btn-outline" onClick={handleCheckOut} disabled={actionLoading} style={{ borderColor: '#ef4444', color: '#ef4444', minWidth: '180px' }}>
-                {actionLoading ? 'Đang xử lý...' : '🏁 KẾT THÚC NGÀY'}
-              </button>
-            ) : (
-              <button className="btn btn-primary btn-lg" onClick={handleCheckIn} disabled={actionLoading} style={{ padding: '12px 32px' }}>
-                {actionLoading ? 'Đang xử lý...' : '🚀 VÀO CA (CHECK-IN)'}
-              </button>
-            )}
-          </div>
-        </div>
+        <ShiftCheckInWidget onCheckInSuccess={fetchData} activeTask={activeTask} />
 
         {/* Current Active Task Monitor */}
         {activeTask && (
@@ -207,7 +150,7 @@ export default function StaffWorklog() {
             <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', backdropFilter: 'blur(2px)' }}>
               <div className="text-center" style={{ padding: '20px' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔒</div>
-                <div style={{ fontWeight: 600 }}>Vui lòng Vào ca để xem công việc</div>
+                <div style={{ fontWeight: 600 }}>Vui lòng Check-in ca làm việc để xem công việc</div>
               </div>
             </div>
           )}

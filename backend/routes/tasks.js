@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
-const { generateId } = require('../utils/helpers');
+const { generateId, getMySQLDateTime } = require('../utils/helpers');
 const logger = require('../utils/logger');
 
 /**
@@ -96,12 +96,35 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
     const generatedTitle = title || `${project.project_name}${item_name ? ' - ' + item_name : ''}`;
 
     const tasks = [];
+    const todayDate = getMySQLDateTime().split(' ')[0];
+
     for (const assigned_to of assignee_ids) {
       const id = generateId();
       await db.prepare(`
         INSERT INTO tasks (id, project_id, project_item_id, assigned_to, title, description, status, location_type, target_shift_id)
         VALUES (?, ?, ?, ?, ?, ?, 'TODO', COALESCE(?, 'WORKSHOP'), ?)
       `).run(id, project_id, project_item_id || null, assigned_to, generatedTitle, description || '', location_type, target_shift_id || null);
+
+      // Auto-tạo shift assignment cho hôm nay nếu task có target_shift_id
+      if (target_shift_id) {
+        try {
+          const instance = await db.prepare(`
+            SELECT id FROM shift_instances
+            WHERE shift_template_id = ? AND work_date = ?
+          `).get(target_shift_id, todayDate);
+
+          if (instance) {
+            const saId = `sa_${assigned_to}_${instance.id}`;
+            await db.prepare(`
+              INSERT IGNORE INTO shift_assignments (id, shift_instance_id, user_id, status, assigned_by)
+              VALUES (?, ?, ?, 'SCHEDULED', ?)
+            `).run(saId, instance.id, assigned_to, req.user.id);
+            logger.info('TASKS', `Auto shift assign: user ${assigned_to} → instance ${instance.id}`);
+          }
+        } catch (e) {
+          logger.warn('TASKS', `Auto shift assign skipped: ${e.message}`);
+        }
+      }
 
       const task = await db.prepare(`
         SELECT t.*, p.project_name, u.full_name as assignee_name, pi.name as project_item_name, st.name as target_shift_name
@@ -112,10 +135,10 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
         LEFT JOIN shift_templates st ON t.target_shift_id = st.id
         WHERE t.id = ?
       `).get(id);
-      
+
       tasks.push(task);
     }
-    
+
     res.status(201).json(tasks);
   } catch (err) {
     logger.error('TASKS', err);

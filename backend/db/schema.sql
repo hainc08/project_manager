@@ -211,3 +211,55 @@ CREATE INDEX IF NOT EXISTS idx_attendance_records_user_date ON attendance_record
 CREATE INDEX IF NOT EXISTS idx_attendance_records_status ON attendance_records(status);
 
 SET FOREIGN_KEY_CHECKS=1;
+
+-- ============================================================
+-- DEFAULT SEED DATA
+-- ============================================================
+
+-- Safety: Add missing columns on existing production databases
+-- (These are no-ops if columns already exist)
+ALTER TABLE shift_templates ADD COLUMN IF NOT EXISTS location_type VARCHAR(20) NOT NULL DEFAULT 'WORKSHOP';
+ALTER TABLE shift_templates ADD COLUMN IF NOT EXISTS checkin_early_minutes INT NOT NULL DEFAULT 30;
+ALTER TABLE shift_templates ADD COLUMN IF NOT EXISTS checkin_late_minutes INT NOT NULL DEFAULT 120;
+ALTER TABLE shift_templates ADD COLUMN IF NOT EXISTS late_grace_minutes INT NOT NULL DEFAULT 5;
+ALTER TABLE shift_templates ADD COLUMN IF NOT EXISTS checkout_grace_minutes INT NOT NULL DEFAULT 5;
+ALTER TABLE shift_templates ADD COLUMN IF NOT EXISTS requires_assignment BOOLEAN NOT NULL DEFAULT 1;
+ALTER TABLE holiday_calendar ADD COLUMN IF NOT EXISTS is_paid_day BOOLEAN NOT NULL DEFAULT 1;
+ALTER TABLE payroll_multiplier_rules ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT 1;
+ALTER TABLE payroll_multiplier_rules ADD COLUMN IF NOT EXISTS segment_type VARCHAR(30) NULL;
+
+-- Shift Templates (Ca làm việc mặc định)
+INSERT IGNORE INTO shift_templates
+  (id, code, name, start_time, end_time, break_minutes, base_multiplier, color,
+   checkin_early_minutes, checkin_late_minutes, late_grace_minutes, checkout_grace_minutes,
+   requires_assignment)
+VALUES
+  ('st_morning',   'MORNING',   'Ca Sáng',  '06:00:00', '14:00:00', 30, 1.0, 'amber',  30, 60, 10, 10, 1),
+  ('st_afternoon', 'AFTERNOON', 'Ca Chiều', '14:00:00', '22:00:00', 30, 1.0, 'blue',   30, 60, 10, 10, 1),
+  ('st_night',     'NIGHT',     'Ca Đêm',   '22:00:00', '06:00:00', 30, 1.3, 'purple', 30, 60, 10, 10, 1);
+
+-- Payroll Multiplier Rules (Hệ số lương mặc định theo luật VN)
+INSERT IGNORE INTO payroll_multiplier_rules
+  (id, code, name, day_type, segment_type, multiplier, is_active, effective_from)
+VALUES
+  ('rule_ot_normal',  'OT_NORMAL',  'OT Ngày Thường',      'NORMAL_WORKDAY',  'OVERTIME', 1.5,  1, '2026-01-01'),
+  ('rule_ot_rest',    'OT_REST',    'OT Ngày Nghỉ Tuần',   'WEEKLY_REST_DAY', 'OVERTIME', 2.0,  1, '2026-01-01'),
+  ('rule_ot_holiday', 'OT_HOLIDAY', 'OT Ngày Lễ',          'PUBLIC_HOLIDAY',  'OVERTIME', 3.0,  1, '2026-01-01'),
+  ('rule_night',      'NIGHT',      'Phụ cấp Ca Đêm',      'NORMAL_WORKDAY',  'NIGHT',    1.3,  1, '2026-01-01'),
+  ('rule_night_rest', 'NIGHT_REST', 'Đêm Ngày Nghỉ Tuần',  'WEEKLY_REST_DAY', 'NIGHT',    1.95, 1, '2026-01-01');
+
+-- Holiday Calendar 2026 (Lịch ngày lễ Việt Nam)
+INSERT IGNORE INTO holiday_calendar (id, holiday_date, name, day_type, is_paid_day)
+VALUES
+  ('hol_20260101', '2026-01-01', 'Tết Dương lịch',              'PUBLIC_HOLIDAY', 1),
+  ('hol_20260216', '2026-02-16', 'Tết Nguyên đán (29 Tết)',      'PUBLIC_HOLIDAY', 1),
+  ('hol_20260217', '2026-02-17', 'Tết Nguyên đán (Mùng 1)',      'PUBLIC_HOLIDAY', 1),
+  ('hol_20260218', '2026-02-18', 'Tết Nguyên đán (Mùng 2)',      'PUBLIC_HOLIDAY', 1),
+  ('hol_20260219', '2026-02-19', 'Tết Nguyên đán (Mùng 3)',      'PUBLIC_HOLIDAY', 1),
+  ('hol_20260220', '2026-02-20', 'Tết Nguyên đán (Mùng 4)',      'PUBLIC_HOLIDAY', 1),
+  ('hol_20260221', '2026-02-21', 'Tết Nguyên đán (Mùng 5)',      'PUBLIC_HOLIDAY', 1),
+  ('hol_20260426', '2026-04-26', 'Giỗ tổ Hùng Vương',            'PUBLIC_HOLIDAY', 1),
+  ('hol_20260430', '2026-04-30', 'Giải phóng miền Nam',           'PUBLIC_HOLIDAY', 1),
+  ('hol_20260501', '2026-05-01', 'Ngày Quốc tế Lao động',        'PUBLIC_HOLIDAY', 1),
+  ('hol_20260902', '2026-09-02', 'Ngày Quốc khánh',              'PUBLIC_HOLIDAY', 1),
+  ('hol_20260903', '2026-09-03', 'Ngày Quốc khánh (bù)',         'PUBLIC_HOLIDAY', 1);

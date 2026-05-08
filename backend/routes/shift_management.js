@@ -38,7 +38,7 @@ router.get('/week', async (req, res) => {
       const dayName = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d.getDay()];
 
       const holiday = await db.prepare(
-        'SELECT name, day_type, default_multiplier FROM holiday_calendar WHERE holiday_date = ?'
+        'SELECT name, day_type, is_paid_day FROM holiday_calendar WHERE holiday_date = ?'
       ).get(dStr);
 
       const countRow = await db.prepare(
@@ -48,7 +48,7 @@ router.get('/week', async (req, res) => {
       let badge, dayType, holidayName;
       if (holiday) {
         dayType = holiday.day_type;
-        badge = `${holiday.default_multiplier}x`;
+        badge = holiday.is_paid_day ? 'Lễ có lương' : 'Lễ';
         holidayName = holiday.name;
       } else if (d.getDay() === 0) {
         dayType = 'WEEKLY_REST_DAY';
@@ -113,7 +113,7 @@ router.get('/days/:date/shifts', async (req, res) => {
 
     const enriched = await Promise.all(shifts.map(async (s) => {
       const assignments = await db.prepare(`
-        SELECT sa.status, sa.user_id, u.full_name
+        SELECT sa.id, sa.status, sa.user_id, u.full_name
         FROM shift_assignments sa JOIN users u ON sa.user_id = u.id
         WHERE sa.shift_instance_id = ?
       `).all(s.id);
@@ -149,6 +149,7 @@ router.get('/days/:date/shifts', async (req, res) => {
       return {
         ...s,
         displayTime: `${s.t_start.slice(0,5)} — ${s.t_end.slice(0,5)}`,
+        assignments,
         stats, employeeAvatars: avatars, statusPills: pills
       };
     }));
@@ -156,6 +157,49 @@ router.get('/days/:date/shifts', async (req, res) => {
     res.json({ date, shifts: enriched });
   } catch (err) {
     logger.error('SHIFT_DAY', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// DAILY ATTENDANCE (All shifts for a date)
+// ============================================================
+router.get('/days/:date/attendance', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const db = getDB(req);
+
+    const records = await db.prepare(`
+      SELECT ar.*, u.full_name, u.role as user_role, st.name as shift_name
+      FROM attendance_records ar
+      JOIN users u ON ar.user_id = u.id
+      LEFT JOIN shift_instances si ON ar.shift_instance_id = si.id
+      LEFT JOIN shift_templates st ON si.shift_template_id = st.id
+      WHERE ar.work_date = ?
+         OR si.work_date = ?
+      ORDER BY ar.check_in_at
+    `).all(date, date);
+
+    const fmt = (dt) => dt
+      ? new Date(dt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+      : '---';
+
+    res.json(records.map(r => ({
+      id: r.id,
+      name: r.full_name,
+      role: r.user_role,
+      shiftName: r.shift_name || 'Không thuộc ca',
+      checkIn:  fmt(r.check_in_at),
+      checkOut: fmt(r.check_out_at),
+      hours: r.total_work_minutes > 0 ? (r.total_work_minutes / 60).toFixed(2) + 'h' : '---',
+      status: r.status,
+      lateMinutes:    r.late_minutes || 0,
+      overtimeMinutes: r.overtime_minutes || 0,
+      isOT: r.overtime_minutes > 0,
+      payrollStatus: r.payroll_status
+    })));
+  } catch (err) {
+    logger.error('DAY_ATT', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -297,13 +341,13 @@ router.get('/holidays', async (req, res) => {
 router.post('/holidays', async (req, res) => {
   try {
     const db = getDB(req);
-    const { holidayDate, name, dayType = 'PUBLIC_HOLIDAY', defaultMultiplier = 3.0 } = req.body;
+    const { holidayDate, name, dayType = 'PUBLIC_HOLIDAY', isPaidDay = true } = req.body;
     const id = 'hol_' + holidayDate.replace(/-/g, '');
     await db.prepare(`
-      INSERT INTO holiday_calendar (id, holiday_date, name, day_type, default_multiplier)
+      INSERT INTO holiday_calendar (id, holiday_date, name, day_type, is_paid_day)
       VALUES (?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE name=VALUES(name), day_type=VALUES(day_type), default_multiplier=VALUES(default_multiplier)
-    `).run(id, holidayDate, name, dayType, defaultMultiplier);
+      ON DUPLICATE KEY UPDATE name=VALUES(name), day_type=VALUES(day_type), is_paid_day=VALUES(is_paid_day)
+    `).run(id, holidayDate, name, dayType, isPaidDay ? 1 : 0);
     res.status(201).json({ id, message: 'Đã lưu ngày lễ' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -320,33 +364,72 @@ router.delete('/holidays/:id', async (req, res) => {
   }
 });
 
+
 // ============================================================
-// PAYROLL MULTIPLIER RULES
+// SHIFT ASSIGNMENTS MANAGEMENT
 // ============================================================
-router.get('/multiplier-rules', async (req, res) => {
+
+/**
+ * POST /api/shift-management/shifts/:instanceId/assign
+ * Admin: Assign a user to a shift instance
+ */
+router.post('/shifts/:instanceId/assign', authenticate, async (req, res) => {
   try {
     const db = getDB(req);
-    const rows = await db.prepare('SELECT * FROM payroll_multiplier_rules WHERE is_active = 1 ORDER BY code').all();
-    res.json(rows);
+    const { instanceId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) return res.status(400).json({ error: 'Thiếu userId' });
+
+    const instance = await db.prepare('SELECT id FROM shift_instances WHERE id = ?').get(instanceId);
+    if (!instance) return res.status(404).json({ error: 'Ca không tồn tại' });
+
+    const user = await db.prepare('SELECT id, full_name FROM users WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: 'Nhân viên không tồn tại' });
+
+    const id = `sa_${userId}_${instanceId}`;
+    try {
+      await db.prepare(`
+        INSERT INTO shift_assignments (id, shift_instance_id, user_id, status, assigned_by)
+        VALUES (?, ?, ?, 'SCHEDULED', ?)
+      `).run(id, instanceId, userId, req.user.id);
+      res.status(201).json({ id, userId, fullName: user.full_name, message: `Đã phân ${user.full_name} vào ca` });
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY' || err.message?.includes('UNIQUE')) {
+        return res.status(409).json({ error: 'Nhân viên đã được phân vào ca này rồi' });
+      }
+      throw err;
+    }
   } catch (err) {
+    logger.error('SHIFT_ASSIGN', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-router.put('/multiplier-rules/:id', async (req, res) => {
+/**
+ * DELETE /api/shift-management/assignments/:id
+ * Admin: Remove a user from a shift
+ */
+router.delete('/assignments/:id', authenticate, async (req, res) => {
   try {
     const db = getDB(req);
-    const { multiplier } = req.body;
-    const rule = await db.prepare('SELECT minimum_legal_multiplier FROM payroll_multiplier_rules WHERE id = ?').get(req.params.id);
-    if (rule && multiplier < rule.minimum_legal_multiplier) {
-      return res.status(400).json({
-        error: `Hệ số ${multiplier}x thấp hơn mức tối thiểu pháp lý ${rule.minimum_legal_multiplier}x`
-      });
-    }
-    await db.prepare('UPDATE payroll_multiplier_rules SET multiplier = ?, updated_at = NOW() WHERE id = ?')
-      .run(multiplier, req.params.id);
-    res.json({ message: 'Cập nhật hệ số thành công' });
+
+    const existing = await db.prepare(`
+      SELECT sa.id, u.full_name FROM shift_assignments sa
+      JOIN users u ON sa.user_id = u.id
+      WHERE sa.id = ?
+    `).get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Không tìm thấy phân ca' });
+
+    const hasCheckin = await db.prepare(
+      'SELECT id FROM attendance_records WHERE shift_assignment_id = ? AND check_in_at IS NOT NULL'
+    ).get(req.params.id);
+    if (hasCheckin) return res.status(400).json({ error: 'Không thể xóa vì nhân viên đã check-in ca này' });
+
+    await db.prepare('DELETE FROM shift_assignments WHERE id = ?').run(req.params.id);
+    res.json({ message: `Đã xóa phân ca của ${existing.full_name}` });
   } catch (err) {
+    logger.error('SHIFT_UNASSIGN', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -393,14 +476,8 @@ router.get('/my-shift-today', authenticate, async (req, res) => {
       return res.json({ hasShift: false, message: 'Hôm nay chưa được phân ca' });
     }
 
-    // Tính cửa sổ check-in
     const shiftStart = new Date(assignment.start_at);
     const shiftEnd   = new Date(assignment.end_at);
-    const earlyMin   = assignment.checkin_early_minutes ?? 30;
-    const lateMin    = assignment.checkin_late_minutes  ?? 120;
-
-    const windowStart = new Date(shiftStart.getTime() - earlyMin * 60000);
-    const windowEnd   = new Date(shiftStart.getTime() + lateMin  * 60000);
 
     // Tìm attendance record
     const record = await db.prepare(`
@@ -408,9 +485,14 @@ router.get('/my-shift-today', authenticate, async (req, res) => {
       WHERE user_id = ? AND shift_instance_id = ?
     `).get(userId, assignment.shift_instance_id);
 
-    const nowMs = Date.now();
-    const canCheckIn  = !record?.check_in_at  && nowMs >= windowStart.getTime() && nowMs <= windowEnd.getTime();
+    // Check-in được phép bất kỳ lúc nào — không giới hạn cửa sổ thời gian
+    const canCheckIn  = !record?.check_in_at;
     const canCheckOut = !!record?.check_in_at && !record?.check_out_at;
+
+    // Thông tin trạng thái ca (chỉ để hiển thị, không chặn check-in)
+    const nowMs       = Date.now();
+    const shiftStarted = nowMs >= shiftStart.getTime();
+    const shiftEnded   = nowMs >= shiftEnd.getTime();
 
     res.json({
       hasShift: true,
@@ -426,21 +508,19 @@ router.get('/my-shift-today', authenticate, async (req, res) => {
         baseMultiplier:   assignment.base_multiplier,
         breakMinutes:     assignment.break_minutes,
         lateGraceMinutes: assignment.late_grace_minutes,
-        windowStart:      windowStart.toISOString(),
-        windowEnd:        windowEnd.toISOString(),
+        shiftStarted,
+        shiftEnded,
       },
       attendance: {
-        id:           record?.id || null,
-        checkInAt:    record?.check_in_at  || null,
-        checkOutAt:   record?.check_out_at || null,
-        status:       record?.status       || 'PENDING',
-        lateMinutes:  record?.late_minutes || 0,
-        overtimeMinutes: record?.overtime_minutes || 0,
+        id:               record?.id || null,
+        checkInAt:        record?.check_in_at  || null,
+        checkOutAt:       record?.check_out_at || null,
+        status:           record?.status       || 'PENDING',
+        lateMinutes:      record?.late_minutes || 0,
+        overtimeMinutes:  record?.overtime_minutes || 0,
         totalWorkMinutes: record?.total_work_minutes || 0,
         canCheckIn,
         canCheckOut,
-        windowNotOpenYet: nowMs < windowStart.getTime(),
-        windowExpired:    !record?.check_in_at && nowMs > windowEnd.getTime(),
       }
     });
   } catch (err) {
@@ -483,15 +563,24 @@ router.post('/staff-check-in', authenticate, async (req, res) => {
       WHERE si.id = ?
     `).get(shiftInstanceId);
 
-    const now = new Date();
+    const now        = new Date();
     const shiftStart = new Date(instance.start_at);
-    const diffMin = Math.floor((now - shiftStart) / 60000);
-    const grace   = instance.late_grace_minutes || 5;
-    const lateMins = Math.max(0, diffMin - grace);
-    const status   = lateMins > 0 ? 'LATE' : 'ON_TIME';
+    const diffMin    = Math.floor((now - shiftStart) / 60000); // âm = vào sớm, dương = muộn
+    const grace      = instance.late_grace_minutes || 5;
+
+    let status   = 'ON_TIME';
+    let lateMins = 0;
+    if (diffMin < 0) {
+      status = 'EARLY';                     // Vào trước giờ ca
+    } else if (diffMin <= grace) {
+      status = 'ON_TIME';                   // Trong biên độ cho phép
+    } else {
+      status   = 'LATE';
+      lateMins = diffMin - grace;           // Số phút trễ sau grace
+    }
 
     const checkInStr = getMySQLDateTime();
-    const recId = `ar_${userId}_${shiftInstanceId}_${Date.now()}`;
+    const recId      = `ar_${userId}_${shiftInstanceId}_${Date.now()}`;
 
     if (existing) {
       await db.prepare(`
@@ -509,12 +598,12 @@ router.post('/staff-check-in', authenticate, async (req, res) => {
              checkInStr, status, lateMins);
     }
 
-    res.json({
-      message: status === 'LATE' ? `Check-in thành công — Muộn ${lateMins} phút` : 'Check-in thành công — Đúng giờ ✓',
-      checkInAt: checkInStr,
-      status,
-      lateMinutes: lateMins
-    });
+    const msgMap = {
+      EARLY:   'Check-in thành công — Vào sớm ✓',
+      ON_TIME: 'Check-in thành công — Đúng giờ ✓',
+      LATE:    `Check-in thành công — Muộn ${lateMins} phút`,
+    };
+    res.json({ message: msgMap[status], checkInAt: checkInStr, status, lateMinutes: lateMins });
   } catch (err) {
     logger.error('STAFF_CHECKIN', err);
     res.status(500).json({ error: err.message });

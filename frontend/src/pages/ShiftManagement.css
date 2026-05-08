@@ -163,7 +163,7 @@
 .sm__day-holiday-name {
   font-size: 9px;
   color: var(--sm-red);
-  margin-bottom: 4px;
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -171,18 +171,23 @@
 }
 .sm__day-badge {
   font-size: 10px;
-  background: var(--sm-bg4);
   color: var(--sm-text2);
-  padding: 2px 6px;
-  border-radius: 20px;
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  margin-top: 4px;
 }
-.sm__day.is-today .sm__day-badge { background: var(--sm-blue); color: #fff; }
-.sm__day.is-holiday .sm__day-badge { background: var(--sm-amber-dim); color: var(--sm-amber); }
+.sm__day.is-selected .sm__day-badge { color: rgba(255,255,255,0.7); }
+.sm__day.is-today .sm__day-badge { color: #fff; }
+.sm__day.is-holiday .sm__day-badge { color: var(--sm-amber); }
+
+.sm__att-shift-tag {
+  background: var(--sm-bg3);
+  color: var(--sm-text2);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 500;
+  border: 1px solid var(--sm-border);
+}
 
 /* ---- Alert Banner ---- */
 .sm__alert {

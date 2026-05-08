@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server.js)",
+      "Bash(npm run *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3001 \")",
+      "Bash(findstr LISTENING)",
+      "Bash(findstr \":3001\\\\|:5173\")",
+      "Bash(Get-NetTCPConnection -LocalPort 3001,5173 -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object LocalPort,OwningProcess)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"123456\"}')",
+      "Bash(node -e \"let d=''; process.stdin.on\\('data',c=>d+=c\\); process.stdin.on\\('end',\\(\\)=>{ let r=JSON.parse\\(d\\); r.shifts.forEach\\(s=>console.log\\('Shift:', s.name, '| Assigned:', s.stats.assigned, '| Present:', s.stats.present\\)\\); }\\)\")",
+      "Bash(node -e \"let d=''; process.stdin.on\\('data',c=>d+=c\\); process.stdin.on\\('end',\\(\\)=>{ let a=JSON.parse\\(d\\); a.forEach\\(t=>console.log\\(t.status, '|', t.title,'| Assignee:', t.assignee_name\\)\\); }\\)\")"
+    ]
+  }
+}

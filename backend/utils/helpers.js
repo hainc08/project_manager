@@ -61,8 +61,8 @@ function calculateLaborCost(startTime, endTime, hourlyRate, locationType, rules 
   const end = new Date(endTime);
   const totalDuration = (end - start) / (1000 * 60 * 60);
 
-  // Dynamic Rules with fallbacks
-  const holidayMult = rules.holiday_multiplier || 1.5;
+  // Dynamic Rules with updated fallbacks
+  const holidayMult = rules.holiday_multiplier || 2.0; // Updated from 1.5 to 2.0
   const ot1Mult = rules.ot1_multiplier || 1.5;
   const ot2Mult = rules.ot2_multiplier || 1.5;
   const siteMult = rules.site_multiplier || 1.2;
@@ -94,8 +94,8 @@ function calculateLaborCost(startTime, endTime, hourlyRate, locationType, rules 
   const locMult = locationType === 'SITE' ? siteMult : 1.0;
 
   let stdHours = 0;
-  let ot1Hours = 0; // 17:15 - 22:15 (1.5x)
-  let ot2Hours = 0; // sau 22:15 (2.0x)
+  let ot1Hours = 0; // 17:15 - 22:15
+  let ot2Hours = 0; // sau 22:15
 
   // Tính giờ từng phân đoạn
   const segStart = start.getTime();
@@ -128,13 +128,20 @@ function calculateLaborCost(startTime, endTime, hourlyRate, locationType, rules 
   }
 
   const costStd = stdHours * hourlyRate * locMult;
-  const costOt1 = ot1Hours * hourlyRate * locMult * ot1Mult;
-  const costOt2 = ot2Hours * hourlyRate * locMult * ot2Mult;
+  
+  // Rule: Site OT is 1.5, Workshop OT is 1.5. 
+  // If Site (1.2) but OT, we use 1.5. 
+  // We don't multiply 1.2 * 1.5 unless requested.
+  const effectiveOt1Mult = locationType === 'SITE' ? Math.max(locMult, ot1Mult) : ot1Mult;
+  const effectiveOt2Mult = locationType === 'SITE' ? Math.max(locMult, ot2Mult) : ot2Mult;
+
+  const costOt1 = ot1Hours * hourlyRate * effectiveOt1Mult;
+  const costOt2 = ot2Hours * hourlyRate * effectiveOt2Mult;
 
   const totalOtHours = roundMoney(ot1Hours + ot2Hours);
   // Effective OT multiplier (weighted average for storage)
   const effectiveOtMult = totalOtHours > 0
-    ? roundMoney((costOt1 + costOt2) / (totalOtHours * hourlyRate * locMult))
+    ? roundMoney((costOt1 + costOt2) / (totalOtHours * hourlyRate))
     : ot1Mult;
 
   return {

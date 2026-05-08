@@ -8,6 +8,14 @@ export default function LiveMonitor() {
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
 
+  const formatCheckinStatus = (status, diffMinutes) => {
+    const diff = diffMinutes || 0;
+    if (status === 'EARLY')   return { label: diff > 0 ? `Sớm ${diff}p` : 'Đúng giờ', color: '#22c87a', bg: '#0d3d28' };
+    if (status === 'ON_TIME') return { label: 'Đúng giờ',            color: '#22c87a', bg: '#0d3d28' };
+    if (status === 'LATE')    return { label: `Muộn ${diff}p`,        color: '#f5a623', bg: '#3d2a0a' };
+    return null;
+  };
+
   const formatVnTime = (date) => {
     return new Intl.DateTimeFormat('vi-VN', {
       timeZone: 'Asia/Ho_Chi_Minh',
@@ -135,13 +143,22 @@ export default function LiveMonitor() {
                   {getInitials(task.full_name)}
                 </div>
                 <div className="live-card-info" style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <div className="live-card-name">{task.full_name}</div>
-                    {task.active_shift_name && (
-                      <span className="badge" style={{ fontSize: '0.7rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                        {task.active_shift_name}
-                      </span>
-                    )}
+                    {task.active_shift_name && (() => {
+                      const att = formatCheckinStatus(task.attendance_status, task.attendance_diff_minutes);
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px', padding: '1px 8px' }}>
+                          {task.active_shift_name}
+                          {att && (
+                            <>
+                              <span style={{ color: 'var(--border-color)', margin: '0 1px' }}>·</span>
+                              <span style={{ color: att.color, fontWeight: 600 }}>{att.label}</span>
+                            </>
+                          )}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="live-card-project" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 600 }}>📁 {task.project_name}</span>

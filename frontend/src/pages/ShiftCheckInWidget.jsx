@@ -56,7 +56,7 @@ function fmtTime(isoStr) {
   return new Date(isoStr).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-export default function ShiftCheckInWidget({ onCheckInSuccess }) {
+export default function ShiftCheckInWidget({ onCheckInSuccess, activeTask }) {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy,    setBusy]    = useState(false);
@@ -101,6 +101,10 @@ export default function ShiftCheckInWidget({ onCheckInSuccess }) {
   };
 
   const handleCheckOut = async () => {
+    if (activeTask) {
+      showToast('Vui lòng kết thúc công việc đang thực hiện trước khi check-out ca', 'error');
+      return;
+    }
     if (!confirm('Bạn chắc chắn muốn check-out ca làm việc?')) return;
     setBusy(true);
     try {
@@ -141,19 +145,47 @@ export default function ShiftCheckInWidget({ onCheckInSuccess }) {
     );
   }
 
-  /* ─── Đang trong ca (đã check-in, chưa check-out) ─── */
+  /* ─── Đã check-in (chưa check-out) ─── */
   if (att?.checkInAt && !att?.checkOutAt) {
+    // RC2: Tính lại từ timestamps thực tế, không dùng att.status từ DB (có thể là legacy)
+    const checkInMs    = new Date(att.checkInAt).getTime();
+    const shiftStartMs = new Date(shift.startAt).getTime();
+    const graceMin     = shift.lateGraceMinutes || 10;
+    const diffMin      = Math.floor((checkInMs - shiftStartMs) / 60000);
+    let liveStatus, liveDiffAbs;
+    if (diffMin < 0) {
+      liveStatus = 'EARLY'; liveDiffAbs = Math.abs(diffMin);
+    } else if (diffMin <= graceMin) {
+      liveStatus = 'ON_TIME'; liveDiffAbs = 0;
+    } else {
+      liveStatus = 'LATE'; liveDiffAbs = diffMin - graceMin;
+    }
+
+    const statusBadge = {
+      EARLY:   { bg: '#0d3d28', color: '#22c87a', label: liveDiffAbs > 0 ? `Sớm ${liveDiffAbs}p` : 'Đúng giờ' },
+      ON_TIME: { bg: col.dim,   color: col.accent, label: 'Đúng giờ' },
+      LATE:    { bg: '#3d2a0a', color: '#f5a623', label: `Muộn ${liveDiffAbs}p` },
+    }[liveStatus] || { bg: col.dim, color: col.accent, label: liveStatus };
+
+    // RC1: Label chính dựa theo shift.shiftStarted / shiftEnded
+    const mainLabel = shift.shiftEnded    ? 'Ca đã kết thúc'
+                    : shift.shiftStarted  ? 'Đang trong ca'
+                    : 'Đã check-in — Chờ ca';
+    const mainIcon  = shift.shiftStarted && !shift.shiftEnded ? '🟢' : '🕐';
+
     return (
       <div style={{ ...styles.card, borderColor: col.accent, background: `${col.dim}66` }}>
         {toast && <ToastBar toast={toast} />}
         <div style={{ ...styles.accentBar, background: col.accent }}></div>
         <div style={styles.body}>
           <div style={styles.row}>
-            <div style={{ ...styles.iconBox, background: col.dim, color: col.accent }}>🟢</div>
+            <div style={{ ...styles.iconBox, background: col.dim, color: col.accent }}>{mainIcon}</div>
             <div style={{ flex: 1 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
-                <span style={{ ...styles.statusBadge, background: col.dim, color: col.accent }}>Đang trong ca</span>
-                {att.status === 'LATE' && <span style={{ ...styles.statusBadge, background:'#3d2a0a', color:'#f5a623' }}>Muộn {att.lateMinutes}p</span>}
+                <span style={{ ...styles.statusBadge, background: col.dim, color: col.accent }}>{mainLabel}</span>
+                <span style={{ ...styles.statusBadge, background: statusBadge.bg, color: statusBadge.color }}>
+                  {statusBadge.label}
+                </span>
               </div>
               <div style={styles.title}>{shift.name} &nbsp;<span style={{ fontFamily:'monospace', color: col.accent }}>{shift.displayTime}</span></div>
               <div style={styles.sub}>Check-in lúc {fmtTime(att.checkInAt)} &nbsp;·&nbsp; Hệ số: <strong style={{ color: col.accent }}>{shift.baseMultiplier}x</strong></div>
@@ -161,7 +193,7 @@ export default function ShiftCheckInWidget({ onCheckInSuccess }) {
             <div style={styles.timerBox}>
               <div style={styles.timerLabel}>Đã làm</div>
               <div style={{ ...styles.timerVal, color: col.accent }}>{elapsed}</div>
-              <div style={styles.timerLabel}>Còn lại: {remaining}</div>
+              {!shift.shiftEnded && <div style={styles.timerLabel}>Còn lại: {remaining}</div>}
             </div>
           </div>
           <div style={{ marginTop: 14, display:'flex', justifyContent:'flex-end' }}>
@@ -180,9 +212,15 @@ export default function ShiftCheckInWidget({ onCheckInSuccess }) {
     return null;
   }
 
-  /* ─── Chưa check-in ─── */
+  /* ─── Chưa check-in — luôn cho phép check-in bất kể giờ nào ─── */
+  const shiftStatusInfo = shift.shiftEnded
+    ? { color: '#8b96b8', text: `⏰ Ca đã kết thúc lúc ${fmtTime(shift.endAt)}` }
+    : shift.shiftStarted
+      ? { color: '#22c87a', text: `▶ Ca đang diễn ra — kết thúc lúc ${fmtTime(shift.endAt)}` }
+      : { color: '#8b96b8', text: `⏳ Ca bắt đầu lúc ${fmtTime(shift.startAt)}` };
+
   return (
-    <div style={{ ...styles.card, borderColor: att?.windowExpired ? '#f0506e44' : col.accent }}>
+    <div style={{ ...styles.card, borderColor: col.accent }}>
       {toast && <ToastBar toast={toast} />}
       <div style={{ ...styles.accentBar, background: col.accent }}></div>
       <div style={styles.body}>
@@ -194,27 +232,15 @@ export default function ShiftCheckInWidget({ onCheckInSuccess }) {
               <span style={{ fontFamily:'monospace' }}>{shift.displayTime}</span>
               &nbsp;·&nbsp; Hệ số: <strong style={{ color: col.accent }}>{shift.baseMultiplier}x</strong>
             </div>
-            <div style={{ ...styles.sub, marginTop: 4 }}>
-              {att?.windowNotOpenYet
-                ? <span style={{ color:'#8b96b8' }}>⏳ Cửa sổ check-in chưa mở — Mở lúc {fmtTime(shift.windowStart)}</span>
-                : att?.windowExpired
-                  ? <span style={{ color:'#f0506e' }}>❌ Đã hết cửa sổ check-in</span>
-                  : <span style={{ color:'#22c87a' }}>✅ Cửa sổ check-in đang mở — Đến {fmtTime(shift.windowEnd)}</span>
-              }
+            <div style={{ ...styles.sub, marginTop: 4, color: shiftStatusInfo.color }}>
+              {shiftStatusInfo.text}
             </div>
           </div>
           <div>
             <button
-              style={{
-                ...styles.btn,
-                background: att?.canCheckIn ? col.accent : '#2a3350',
-                color: att?.canCheckIn ? '#fff' : '#4a5578',
-                cursor: att?.canCheckIn && !busy ? 'pointer' : 'not-allowed',
-                opacity: att?.canCheckIn ? 1 : 0.6,
-              }}
-              onClick={att?.canCheckIn ? handleCheckIn : undefined}
-              disabled={!att?.canCheckIn || busy}
-              title={!att?.canCheckIn ? 'Ngoài cửa sổ check-in' : ''}
+              style={{ ...styles.btn, background: col.accent, color: '#fff' }}
+              onClick={handleCheckIn}
+              disabled={busy}
             >
               {busy ? '⏳' : '🚀 CHECK-IN CA'}
             </button>

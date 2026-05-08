@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import ShiftTemplateModal from './ShiftTemplateModal';
-import MultiplierSettings from './MultiplierSettings';
 import './ShiftManagement.css';
 
 const API = import.meta.env.VITE_API_URL;
@@ -30,10 +29,14 @@ export default function ShiftManagement() {
   const [dayShifts,    setDayShifts]    = useState([]);
   const [selectedShift,setSelectedShift]= useState(null);
   const [attendance,   setAttendance]   = useState([]);
+  const [dayAttendance,setDayAttendance]= useState([]);
   const [templates,    setTemplates]    = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [showModal,    setShowModal]    = useState(false);
   const [editTemplate, setEditTemplate] = useState(null);
+  const [users,        setUsers]        = useState([]);
+  const [assignUserId, setAssignUserId] = useState('');
+  const [assignMsg,    setAssignMsg]    = useState(null);
 
   const fetchWeek = useCallback(async () => {
     const res = await axios.get(`${API}/shift-management/week?startDate=${selectedDate}`);
@@ -45,10 +48,12 @@ export default function ShiftManagement() {
     const res = await axios.get(`${API}/shift-management/days/${date}/shifts`);
     const shifts = res.data.shifts || [];
     setDayShifts(shifts);
-    setSelectedShift(prev => {
-      if (prev) { const found = shifts.find(s => s.id === prev.id); return found || shifts[0] || null; }
-      return shifts[0] || null;
-    });
+    setSelectedShift(null); // Reset when day changes
+  }, []);
+
+  const fetchDayAttendance = useCallback(async (date) => {
+    const res = await axios.get(`${API}/shift-management/days/${date}/attendance`);
+    setDayAttendance(res.data);
   }, []);
 
   const fetchAtt = useCallback(async (id) => {
@@ -60,6 +65,38 @@ export default function ShiftManagement() {
     const res = await axios.get(`${API}/shift-management/templates`);
     setTemplates(res.data);
   }, []);
+
+  const fetchUsers = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await axios.get(`${API}/users`);
+      setUsers(res.data.filter(u => u.role === 'STAFF'));
+    } catch {}
+  }, [isAdmin]);
+
+  const handleAssign = async (instanceId) => {
+    if (!assignUserId) return;
+    setAssignMsg(null);
+    try {
+      const res = await axios.post(`${API}/shift-management/shifts/${instanceId}/assign`, { userId: assignUserId });
+      setAssignMsg({ type: 'ok', text: res.data.message });
+      setAssignUserId('');
+      await fetchDay(selectedDate);
+    } catch (err) {
+      setAssignMsg({ type: 'err', text: err.response?.data?.error || 'Lỗi phân ca' });
+    }
+  };
+
+  const handleUnassign = async (assignmentId) => {
+    setAssignMsg(null);
+    try {
+      const res = await axios.delete(`${API}/shift-management/assignments/${assignmentId}`);
+      setAssignMsg({ type: 'ok', text: res.data.message });
+      await fetchDay(selectedDate);
+    } catch (err) {
+      setAssignMsg({ type: 'err', text: err.response?.data?.error || 'Lỗi xóa phân ca' });
+    }
+  };
 
   const handleDeleteTemplate = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa ca này?')) return;
@@ -73,9 +110,14 @@ export default function ShiftManagement() {
   };
 
   useEffect(() => { fetchWeek(); }, [fetchWeek]);
-  useEffect(() => { fetchDay(selectedDate); }, [selectedDate, fetchDay]);
+  useEffect(() => {
+    fetchDay(selectedDate);
+    fetchDayAttendance(selectedDate);
+    setAssignMsg(null);
+  }, [selectedDate, fetchDay, fetchDayAttendance]);
   useEffect(() => { if (selectedShift) fetchAtt(selectedShift.id); else setAttendance([]); }, [selectedShift, fetchAtt]);
   useEffect(() => { if (tab === 'Danh sách ca') fetchTemplates(); }, [tab, fetchTemplates]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const otAlerts = dayShifts.filter(s => s.stats?.overtime > 0);
 
@@ -101,7 +143,6 @@ export default function ShiftManagement() {
         </div>
         {isAdmin && (
           <div className="sm__header-actions">
-            <button className="sm__btn-ghost" onClick={() => setTab('Cài đặt hệ số')}>⚙ Cài đặt hệ số</button>
             <button className="sm__btn-primary" onClick={() => { setEditTemplate(null); setShowModal(true); }}>＋ Thêm ca</button>
           </div>
         )}
@@ -109,7 +150,7 @@ export default function ShiftManagement() {
 
       {/* ---- Tabs ---- */}
       <div className="sm__tabs">
-        {['Lịch tuần', 'Danh sách ca', ...(isAdmin ? ['Cài đặt hệ số'] : [])].map(t => (
+        {['Lịch tuần', 'Danh sách ca'].map(t => (
           <div key={t} className={`sm__tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>{t}</div>
         ))}
       </div>
@@ -123,11 +164,18 @@ export default function ShiftManagement() {
               return (
                 <div key={day.date}
                   className={['sm__day', day.isToday?'is-today':'', selectedDate===day.date?'is-selected':'', isHol?'is-holiday':''].filter(Boolean).join(' ')}
-                  onClick={() => setSelectedDate(day.date)}>
+                  onClick={() => {
+                    if (selectedDate === day.date) {
+                      // If already on this day, just clear selection to show all
+                      setSelectedShift(null);
+                    } else {
+                      setSelectedDate(day.date);
+                    }
+                  }}>
                   <div className="sm__day-name">{day.dayName}</div>
                   <div className="sm__day-num">{new Date(day.date+'T00:00:00').getDate()}</div>
-                  {day.holidayName && <div className="sm__day-holiday-name">{day.holidayName}</div>}
-                  <div className="sm__day-badge">{day.badge}</div>
+                  {day.holidayName && <div className="sm__day-holiday-name" title={day.holidayName}>{day.holidayName}</div>}
+                  <div className="sm__day-badge">{day.shiftCount} ca</div>
                 </div>
               );
             })}
@@ -173,44 +221,106 @@ export default function ShiftManagement() {
             ))}
           </div>
 
-          {selectedShift && (
-            <div className="sm__att-section">
-              <div className="sm__section-title">
-                Chi tiết chấm công — {selectedShift.name}&nbsp;
-                {new Date(selectedDate+'T00:00:00').toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})}
-              </div>
-              <div className="sm__att-table">
-                <div className="sm__att-row sm__att-row--header">
-                  <div className="sm__att-col-name">Nhân viên</div>
-                  <div className="sm__att-col-checkin">Check-in</div>
-                  <div className="sm__att-col-checkout">Check-out</div>
-                  <div className="sm__att-col-hours">Giờ làm</div>
-                  <div className="sm__att-col-status">Trạng thái</div>
-                </div>
-                {attendance.length === 0
-                  ? <div className="sm__empty">Chưa có dữ liệu chấm công.</div>
-                  : attendance.map(row => {
-                    const st = fmtStatus(row);
-                    return (
-                      <div key={row.id} className="sm__att-row">
-                        <div className="sm__att-col-name">
-                          <div className="sm__att-name">{row.name}</div>
-                          <div className="sm__att-role">{row.role}</div>
-                        </div>
-                        <div className="sm__att-col-checkin" style={{color: row.lateMinutes>0?'var(--sm-amber)':'var(--sm-green)'}}>
-                          {row.checkIn}{row.lateMinutes>0 && <span className="sm__late-tag">+{row.lateMinutes}p</span>}
-                        </div>
-                        <div className="sm__att-col-checkout" style={{color: row.isOT?'var(--sm-purple)':'inherit'}}>
-                          {row.checkOut}{row.isOT && <span className="sm__ot-tag">OT</span>}
-                        </div>
-                        <div className="sm__att-col-hours" style={{color: row.isOT?'var(--sm-purple)':'inherit'}}>{row.hours}</div>
-                        <div className="sm__att-col-status"><span className={`sm__pill sm__pill--${st.cls}`}>{st.lbl}</span></div>
-                      </div>
-                    );
-                  })}
-              </div>
+          <div className="sm__att-section">
+            <div className="sm__section-title">
+              {selectedShift
+                ? `Chi tiết chấm công — ${selectedShift.name}`
+                : 'Tổng hợp chấm công trong ngày'}
+              &nbsp;—&nbsp;
+              {new Date(selectedDate+'T00:00:00').toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})}
             </div>
-          )}
+
+            {/* Assign panel — chỉ hiện khi chọn 1 ca cụ thể và là admin */}
+            {selectedShift && isAdmin && (() => {
+              const shiftData = dayShifts.find(s => s.id === selectedShift.id);
+              const currentAssignments = shiftData?.assignments || [];
+              const assignedIds = currentAssignments.map(a => a.user_id);
+              const availableUsers = users.filter(u => !assignedIds.includes(u.id));
+              return (
+                <div style={{ background: 'var(--sm-bg2)', border: '1px solid var(--sm-border)', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: 'var(--sm-text)' }}>👥 Phân ca nhân viên</div>
+
+                  {assignMsg && (
+                    <div style={{ fontSize: 12, marginBottom: 8, color: assignMsg.type === 'ok' ? 'var(--sm-green)' : 'var(--sm-red)', fontWeight: 500 }}>
+                      {assignMsg.text}
+                    </div>
+                  )}
+
+                  {/* Danh sách nhân viên đã phân */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {currentAssignments.length === 0
+                      ? <span style={{ fontSize: 12, color: 'var(--sm-text3)' }}>Chưa có nhân viên nào được phân vào ca này</span>
+                      : currentAssignments.map(a => (
+                        <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--sm-bg)', border: '1px solid var(--sm-border)', borderRadius: 20, padding: '3px 10px 3px 10px', fontSize: 12 }}>
+                          <span>{a.full_name}</span>
+                          <button
+                            onClick={() => handleUnassign(a.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sm-red)', fontSize: 14, lineHeight: 1, padding: '0 2px' }}
+                            title="Xóa khỏi ca"
+                          >✕</button>
+                        </div>
+                      ))
+                    }
+                  </div>
+
+                  {/* Thêm nhân viên */}
+                  {availableUsers.length > 0 ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <select
+                        value={assignUserId}
+                        onChange={e => setAssignUserId(e.target.value)}
+                        className="sm__form-input"
+                        style={{ flex: 1, fontSize: 13 }}
+                      >
+                        <option value="">-- Chọn nhân viên --</option>
+                        {availableUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.full_name}</option>
+                        ))}
+                      </select>
+                      <button
+                        className="sm__btn-primary"
+                        style={{ padding: '6px 14px', fontSize: 13 }}
+                        onClick={() => handleAssign(selectedShift.id)}
+                        disabled={!assignUserId}
+                      >＋ Thêm</button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--sm-text3)' }}>✅ Tất cả nhân viên đã được phân ca</div>
+                  )}
+                </div>
+              );
+            })()}
+            <div className="sm__att-table">
+              <div className="sm__att-row sm__att-row--header">
+                <div className="sm__att-col-name">Nhân viên</div>
+                <div className="sm__att-col-checkin">Check-in</div>
+                <div className="sm__att-col-checkout">Check-out</div>
+                <div className="sm__att-col-hours">Giờ làm</div>
+                <div className="sm__att-col-status">Trạng thái</div>
+              </div>
+              {(selectedShift ? attendance : dayAttendance).length === 0
+                ? <div className="sm__empty">Chưa có dữ liệu chấm công.</div>
+                : (selectedShift ? attendance : dayAttendance).map(row => {
+                  const st = fmtStatus(row);
+                  return (
+                    <div key={row.id} className="sm__att-row">
+                      <div className="sm__att-col-name">
+                        <div className="sm__att-name">{row.name}</div>
+                        <div className="sm__att-role">{row.role} {!selectedShift && <span className="sm__att-shift-tag">{row.shiftName}</span>}</div>
+                      </div>
+                      <div className="sm__att-col-checkin" style={{color: row.lateMinutes>0?'var(--sm-amber)':'var(--sm-green)'}}>
+                        {row.checkIn}{row.lateMinutes>0 && <span className="sm__late-tag">+{row.lateMinutes}p</span>}
+                      </div>
+                      <div className="sm__att-col-checkout" style={{color: row.isOT?'var(--sm-purple)':'inherit'}}>
+                        {row.checkOut}{row.isOT && <span className="sm__ot-tag">OT</span>}
+                      </div>
+                      <div className="sm__att-col-hours" style={{color: row.isOT?'var(--sm-purple)':'inherit'}}>{row.hours}</div>
+                      <div className="sm__att-col-status"><span className={`sm__pill sm__pill--${st.cls}`}>{st.lbl}</span></div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
         </>
       )}
 
@@ -261,9 +371,6 @@ export default function ShiftManagement() {
           ))}
         </div>
       )}
-
-      {/* ===================== TAB: CÀI ĐẶT HỆ SỐ ===================== */}
-      {tab === 'Cài đặt hệ số' && <MultiplierSettings />}
 
       {/* ===================== MODAL ===================== */}
       {showModal && (
